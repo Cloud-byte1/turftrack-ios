@@ -2,13 +2,13 @@ import SwiftUI
 
 @main
 struct TurfTrackApp: App {
-    @StateObject private var ble = GolfMatBLEManager()
+    @StateObject private var store = FairLieStore()
 
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(ble)
-                .preferredColorScheme(.dark)
+                .environmentObject(store)
+                .preferredColorScheme(.light)
         }
     }
 }

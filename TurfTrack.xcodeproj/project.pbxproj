@@ -13,10 +13,15 @@
 		A10000000000000000000004 /* SwingPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000004 /* SwingPacket.swift */; };
 		A10000000000000000000005 /* SwingResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* SwingResult.swift */; };
 		A10000000000000000000006 /* ClubType.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* ClubType.swift */; };
-		A10000000000000000000007 /* ControlBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* ControlBar.swift */; };
-		A10000000000000000000008 /* StrikeHeatmapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* StrikeHeatmapView.swift */; };
-		A10000000000000000000009 /* GradeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000009 /* GradeViews.swift */; };
 		A1000000000000000000000A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000A /* Assets.xcassets */; };
+		B10000000000000000000001 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000001 /* Theme.swift */; };
+		B10000000000000000000002 /* FairLieStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000002 /* FairLieStore.swift */; };
+		B10000000000000000000003 /* SessionSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000003 /* SessionSummary.swift */; };
+		B10000000000000000000004 /* SwingArc.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000004 /* SwingArc.swift */; };
+		B10000000000000000000005 /* SwingSimulator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000005 /* SwingSimulator.swift */; };
+		B10000000000000000000006 /* LabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000006 /* LabView.swift */; };
+		B10000000000000000000007 /* LabComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000007 /* LabComponents.swift */; };
+		B10000000000000000000008 /* SessionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000008 /* SessionsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,10 +32,15 @@
 		A20000000000000000000004 /* SwingPacket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingPacket.swift; sourceTree = "<group>"; };
 		A20000000000000000000005 /* SwingResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingResult.swift; sourceTree = "<group>"; };
 		A20000000000000000000006 /* ClubType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubType.swift; sourceTree = "<group>"; };
-		A20000000000000000000007 /* ControlBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlBar.swift; sourceTree = "<group>"; };
-		A20000000000000000000008 /* StrikeHeatmapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrikeHeatmapView.swift; sourceTree = "<group>"; };
-		A20000000000000000000009 /* GradeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradeViews.swift; sourceTree = "<group>"; };
 		A2000000000000000000000A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B20000000000000000000001 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		B20000000000000000000002 /* FairLieStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FairLieStore.swift; sourceTree = "<group>"; };
+		B20000000000000000000003 /* SessionSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSummary.swift; sourceTree = "<group>"; };
+		B20000000000000000000004 /* SwingArc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingArc.swift; sourceTree = "<group>"; };
+		B20000000000000000000005 /* SwingSimulator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingSimulator.swift; sourceTree = "<group>"; };
+		B20000000000000000000006 /* LabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabView.swift; sourceTree = "<group>"; };
+		B20000000000000000000007 /* LabComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabComponents.swift; sourceTree = "<group>"; };
+		B20000000000000000000008 /* SessionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -57,8 +67,11 @@
 			children = (
 				A20000000000000000000001 /* TurfTrackApp.swift */,
 				A20000000000000000000002 /* ContentView.swift */,
+				B20000000000000000000001 /* Theme.swift */,
+				B20000000000000000000002 /* FairLieStore.swift */,
 				A50000000000000000000004 /* BLE */,
 				A50000000000000000000005 /* Models */,
+				B50000000000000000000001 /* Engine */,
 				A50000000000000000000006 /* Views */,
 				A2000000000000000000000A /* Assets.xcassets */,
 			);
@@ -87,16 +100,26 @@
 			children = (
 				A20000000000000000000005 /* SwingResult.swift */,
 				A20000000000000000000006 /* ClubType.swift */,
+				B20000000000000000000003 /* SessionSummary.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		B50000000000000000000001 /* Engine */ = {
+			isa = PBXGroup;
+			children = (
+				B20000000000000000000004 /* SwingArc.swift */,
+				B20000000000000000000005 /* SwingSimulator.swift */,
+			);
+			path = Engine;
 			sourceTree = "<group>";
 		};
 		A50000000000000000000006 /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				A20000000000000000000007 /* ControlBar.swift */,
-				A20000000000000000000008 /* StrikeHeatmapView.swift */,
-				A20000000000000000000009 /* GradeViews.swift */,
+				B20000000000000000000006 /* LabView.swift */,
+				B20000000000000000000007 /* LabComponents.swift */,
+				B20000000000000000000008 /* SessionsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -172,13 +195,18 @@
 			files = (
 				A10000000000000000000001 /* TurfTrackApp.swift in Sources */,
 				A10000000000000000000002 /* ContentView.swift in Sources */,
+				B10000000000000000000001 /* Theme.swift in Sources */,
+				B10000000000000000000002 /* FairLieStore.swift in Sources */,
 				A10000000000000000000003 /* GolfMatBLEManager.swift in Sources */,
 				A10000000000000000000004 /* SwingPacket.swift in Sources */,
 				A10000000000000000000005 /* SwingResult.swift in Sources */,
 				A10000000000000000000006 /* ClubType.swift in Sources */,
-				A10000000000000000000007 /* ControlBar.swift in Sources */,
-				A10000000000000000000008 /* StrikeHeatmapView.swift in Sources */,
-				A10000000000000000000009 /* GradeViews.swift in Sources */,
+				B10000000000000000000003 /* SessionSummary.swift in Sources */,
+				B10000000000000000000004 /* SwingArc.swift in Sources */,
+				B10000000000000000000005 /* SwingSimulator.swift in Sources */,
+				B10000000000000000000006 /* LabView.swift in Sources */,
+				B10000000000000000000007 /* LabComponents.swift in Sources */,
+				B10000000000000000000008 /* SessionsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -230,9 +258,9 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = TurfTrack;
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "TurfTrack connects to your GolfMat over Bluetooth to show live strike data.";
-				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "TurfTrack connects to your GolfMat over Bluetooth to show live strike data.";
+				INFOPLIST_KEY_CFBundleDisplayName = "Strike Lab";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Strike Lab connects to your GolfMat over Bluetooth to show live strike data.";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "Strike Lab connects to your GolfMat over Bluetooth to show live strike data.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -261,9 +289,9 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = TurfTrack;
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "TurfTrack connects to your GolfMat over Bluetooth to show live strike data.";
-				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "TurfTrack connects to your GolfMat over Bluetooth to show live strike data.";
+				INFOPLIST_KEY_CFBundleDisplayName = "Strike Lab";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Strike Lab connects to your GolfMat over Bluetooth to show live strike data.";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "Strike Lab connects to your GolfMat over Bluetooth to show live strike data.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;

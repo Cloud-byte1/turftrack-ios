@@ -1,3 +1,4 @@
+import Combine
 import CoreBluetooth
 import Foundation
 
@@ -12,23 +13,14 @@ final class GolfMatBLEManager: NSObject, ObservableObject {
     @Published private(set) var connectionState: ConnectionState = .disconnected
     @Published private(set) var deviceName: String?
     @Published private(set) var errorMessage: String?
-    @Published private(set) var armed = false
-    @Published private(set) var lastSwing: SwingResult?
-    @Published private(set) var history: [SwingResult] = []
+    @Published var armed = false
+    @Published var lastPacket: SwingPacket?
 
     private var central: CBCentralManager!
     private var peripheral: CBPeripheral?
     private var swingCharacteristic: CBCharacteristic?
 
     var isConnected: Bool { connectionState == .connected }
-
-    var waitingForStrike: Bool {
-        armed && (lastSwing == nil || lastSwing?.isZeroed == true)
-    }
-
-    var displaySwing: SwingResult {
-        lastSwing ?? .zeroed
-    }
 
     var statusTitle: String {
         switch connectionState {
@@ -96,25 +88,7 @@ final class GolfMatBLEManager: NSObject, ObservableObject {
 
     /// Zeros the UI and arms strike gating. Hardware tare still needs USB `CAL` on the ESP.
     func calibrateAndArm() {
-        guard isConnected else {
-            errorMessage = "Connect to GolfMat first."
-            return
-        }
-        armed = true
-        lastSwing = SwingResult(
-            id: UUID(),
-            timestampMs: 0,
-            receivedAt: Date(),
-            fsrPeaks: [0, 0, 0, 0, 0, 0],
-            impactZone: -1,
-            impactQuality: 0,
-            estimatedDistanceM: 0,
-            directionLabel: "Armed",
-            heelPressurePct: 0,
-            centerPressurePct: 0,
-            toePressurePct: 0,
-            isZeroed: true
-        )
+        lastPacket = nil
         errorMessage = nil
     }
 
@@ -125,13 +99,10 @@ final class GolfMatBLEManager: NSObject, ObservableObject {
     }
 
     private func handleSwingData(_ data: Data) {
-        guard armed else { return }
         do {
             let packet = try SwingPacket(data: data)
             guard Int(packet.impactQuality) >= Self.minimumImpactQuality else { return }
-            let swing = SwingResult.from(packet: packet)
-            lastSwing = swing
-            history = Array((history + [swing]).suffix(50))
+            lastPacket = packet
         } catch {
             errorMessage = "Bad swing packet: \(error.localizedDescription)"
         }
