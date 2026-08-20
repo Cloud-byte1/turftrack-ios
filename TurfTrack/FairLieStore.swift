@@ -3,9 +3,15 @@ import Foundation
 
 @MainActor
 final class FairLieStore: ObservableObject {
-    enum Tab: String, CaseIterable { case lab = "Lab", sessions = "Sessions", progress = "Progress" }
+    enum Tab: String, CaseIterable {
+        case home = "Home"
+        case practice = "Practice"
+        case play = "Play"
+        case progress = "Progress"
+        case club = "Club"
+    }
 
-    @Published var tab: Tab = .lab
+    @Published var tab: Tab = .home
     @Published var club = "7 Iron"
     @Published var swing = SwingResult.zeroed
     @Published var notice = "Start a session, connect GolfMat, then zero and initialize a swing."
@@ -60,7 +66,7 @@ final class FairLieStore: ObservableObject {
         packetCount = 0
         sessionSwings = []
         selectedSession = nil
-        tab = .lab
+        tab = .practice
         notice = "Session initialized at zero. Connect the mat, then zero the sensors."
     }
 
@@ -75,7 +81,7 @@ final class FairLieStore: ObservableObject {
         armed = false
         isZeroed = false
         sessionSwings = []
-        tab = .sessions
+        tab = .progress
         notice = "Session saved."
     }
 

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LabView: View {
     @EnvironmentObject private var store: FairLieStore
+    @EnvironmentObject private var auth: AuthStore
 
     var body: some View {
         ScrollView {
@@ -45,7 +46,7 @@ struct LabView: View {
                     Image(systemName: "flag.fill").foregroundStyle(.white)
                 }
                 .frame(width: 38, height: 38)
-                Text("STRIKE LAB").font(.headline.weight(.heavy)).tracking(1.2).foregroundStyle(Theme.greenDark)
+                Text("fairLie").font(.headline.weight(.heavy)).tracking(1.2).foregroundStyle(Theme.greenDark)
             }
             Spacer()
             HStack(spacing: 10) {
@@ -55,7 +56,7 @@ struct LabView: View {
                     .overlay(Text(store.profileInitials).font(.subheadline.weight(.bold)))
                     .overlay(Circle().stroke(.white, lineWidth: 3))
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(store.profileName).font(.subheadline.weight(.semibold))
+                    Text(auth.user.name).font(.subheadline.weight(.semibold))
                     Text("12 day streak").font(.caption2).foregroundStyle(Theme.muted)
                 }
             }
@@ -68,7 +69,7 @@ struct LabView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day()).uppercased())
                     .eyebrowStyle()
-                Text("Good afternoon, \(store.profileName).")
+                Text("Good afternoon, \(auth.user.name).")
                     .font(.system(size: 28, weight: .bold))
                     .foregroundStyle(Theme.ink)
                 Text("Ready to dial in your next shot?")

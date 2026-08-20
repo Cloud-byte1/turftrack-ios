@@ -22,6 +22,12 @@
 		B10000000000000000000006 /* LabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000006 /* LabView.swift */; };
 		B10000000000000000000007 /* LabComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000007 /* LabComponents.swift */; };
 		B10000000000000000000008 /* SessionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000008 /* SessionsView.swift */; };
+		B10000000000000000000009 /* FairLieCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000009 /* FairLieCatalog.swift */; };
+		B1000000000000000000000A /* AuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2000000000000000000000A /* AuthStore.swift */; };
+		B1000000000000000000000B /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2000000000000000000000B /* LoginView.swift */; };
+		B1000000000000000000000C /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2000000000000000000000C /* HomeView.swift */; };
+		B1000000000000000000000D /* ClubhouseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2000000000000000000000D /* ClubhouseView.swift */; };
+		B1000000000000000000000E /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2000000000000000000000E /* ProfileView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -41,6 +47,12 @@
 		B20000000000000000000006 /* LabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabView.swift; sourceTree = "<group>"; };
 		B20000000000000000000007 /* LabComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabComponents.swift; sourceTree = "<group>"; };
 		B20000000000000000000008 /* SessionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionsView.swift; sourceTree = "<group>"; };
+		B20000000000000000000009 /* FairLieCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FairLieCatalog.swift; sourceTree = "<group>"; };
+		B2000000000000000000000A /* AuthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStore.swift; sourceTree = "<group>"; };
+		B2000000000000000000000B /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		B2000000000000000000000C /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		B2000000000000000000000D /* ClubhouseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubhouseView.swift; sourceTree = "<group>"; };
+		B2000000000000000000000E /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -69,6 +81,7 @@
 				A20000000000000000000002 /* ContentView.swift */,
 				B20000000000000000000001 /* Theme.swift */,
 				B20000000000000000000002 /* FairLieStore.swift */,
+				B2000000000000000000000A /* AuthStore.swift */,
 				A50000000000000000000004 /* BLE */,
 				A50000000000000000000005 /* Models */,
 				B50000000000000000000001 /* Engine */,
@@ -101,6 +114,7 @@
 				A20000000000000000000005 /* SwingResult.swift */,
 				A20000000000000000000006 /* ClubType.swift */,
 				B20000000000000000000003 /* SessionSummary.swift */,
+				B20000000000000000000009 /* FairLieCatalog.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -120,6 +134,10 @@
 				B20000000000000000000006 /* LabView.swift */,
 				B20000000000000000000007 /* LabComponents.swift */,
 				B20000000000000000000008 /* SessionsView.swift */,
+				B2000000000000000000000B /* LoginView.swift */,
+				B2000000000000000000000C /* HomeView.swift */,
+				B2000000000000000000000D /* ClubhouseView.swift */,
+				B2000000000000000000000E /* ProfileView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -207,6 +225,12 @@
 				B10000000000000000000006 /* LabView.swift in Sources */,
 				B10000000000000000000007 /* LabComponents.swift in Sources */,
 				B10000000000000000000008 /* SessionsView.swift in Sources */,
+				B10000000000000000000009 /* FairLieCatalog.swift in Sources */,
+				B1000000000000000000000A /* AuthStore.swift in Sources */,
+				B1000000000000000000000B /* LoginView.swift in Sources */,
+				B1000000000000000000000C /* HomeView.swift in Sources */,
+				B1000000000000000000000D /* ClubhouseView.swift in Sources */,
+				B1000000000000000000000E /* ProfileView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -258,7 +282,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Strike Lab";
+				INFOPLIST_KEY_CFBundleDisplayName = fairLie;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Strike Lab connects to your GolfMat over Bluetooth to show live strike data.";
 				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "Strike Lab connects to your GolfMat over Bluetooth to show live strike data.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -289,7 +313,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Strike Lab";
+				INFOPLIST_KEY_CFBundleDisplayName = fairLie;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Strike Lab connects to your GolfMat over Bluetooth to show live strike data.";
 				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "Strike Lab connects to your GolfMat over Bluetooth to show live strike data.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

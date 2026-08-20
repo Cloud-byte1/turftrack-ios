@@ -1,36 +1,21 @@
-# Strike Lab (FairLie iOS)
+# fairLie (iOS)
 
-Native iPhone app for the FairLie / GolfMat system — the full Strike Lab UI:
+Native iPhone app for the FairLie smart-mat system — the full product, not just the lab.
 
-- **Lab** — connect GolfMat over BLE, zero sensors, initialize a swing, strike heatmap, grades A–F, simulator, club-head path
-- **Sessions** — save practice sessions with carry, ball/club speed, smash, radar hit rate
-- **Progress** — score trend across saved sessions
+## App
 
-## Requirements
-
-- Mac with **Xcode 15+**
-- iPhone on **iOS 16+**
-- Apple ID (free signing works for your own device)
-- Optional: GolfMat firmware advertising as `GolfMat` (service `0xAB12`, notify `0xAB13`)
+- **Sign in / Create account** then **profile setup** (city, handicap, skill, bag)
+- **Home** — strike score, start session, putting snapshot, Clubhouse banner
+- **Practice** — Strike Lab (BLE mat, zero, heatmap, grades, simulator)
+- **Play** — challenges and club battles
+- **Progress** — saved sessions and score trend
+- **Club** — bag, trophies, friends, leaderboards, foursomes, device
+- **Profile & Settings** — bio, handicap, sign out
 
 ## Open & run
 
-1. Clone this repo on a Mac
-2. Open `TurfTrack.xcodeproj` in Xcode
-3. Select your Team under **Signing & Capabilities**
-4. Plug in an iPhone, pick it as the run destination
-5. Build & run (allow Bluetooth on first launch)
+1. Clone on a Mac and open `TurfTrack.xcodeproj`
+2. Set your Team under Signing & Capabilities
+3. Run on an iPhone (iOS 16+)
 
-## App flow
-
-1. **Start new session**
-2. **Mat BLE** — pair GolfMat
-3. **Zero sensors** (keep the mat still)
-4. **Initialize swing** — pads stay at 0 until a real strike (`impact_quality ≥ 35`)
-5. Strike paints the heat map and letter grades; finish the session to save it
-
-No hardware? Use **Randomize / Simulate swing** or the contact examples (Perfect / Heel / Toe / Thin).
-
-## Related
-
-Firmware + web lab live in the separate `golf_mat` repo. This app is the iPhone client.
+Accounts are saved on-device for the demo. Pair GolfMat over BLE from Practice after you sign in.
