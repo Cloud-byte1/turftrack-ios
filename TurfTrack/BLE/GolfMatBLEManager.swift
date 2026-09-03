@@ -127,7 +127,7 @@ extension GolfMatBLEManager: CBCentralManagerDelegate {
                 break
             case .unauthorized:
                 self.connectionState = .disconnected
-                self.errorMessage = "Allow Bluetooth for TurfTrack in Settings."
+                self.errorMessage = "Allow Bluetooth for fairLie in Settings."
             case .unsupported:
                 self.connectionState = .unsupported
             default:

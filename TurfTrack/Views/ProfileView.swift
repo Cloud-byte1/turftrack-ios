@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct ProfileView: View {
     @EnvironmentObject private var auth: AuthStore
@@ -127,6 +128,9 @@ struct SettingsView: View {
     @State private var handicap = 12.4
     @State private var outdoor = true
     @State private var notifications = true
+    @State private var legalDocument: LegalDocument?
+    @State private var showDeleteAccount = false
+    @State private var exportedData = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -141,48 +145,162 @@ struct SettingsView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("Profile").font(.headline)
-                    field("Name", text: $name)
-                    field("City", text: $city)
-                    field("Bio", text: $bio)
-                    VStack(alignment: .leading) {
-                        HStack {
-                            Text("Handicap")
-                            Spacer()
-                            Text(String(format: "%.1f", handicap)).foregroundStyle(Theme.greenDark)
-                        }
-                        Slider(value: $handicap, in: 0...36, step: 0.1).tint(Theme.green)
-                    }
-                    .padding(14)
-                    .fairCard()
-
-                    Button("Save profile") {
-                        auth.updateProfile(name: name, city: city, bio: bio, handicap: handicap)
-                        onClose()
-                    }
-                    .font(.subheadline.weight(.bold)).foregroundStyle(.white)
-                    .frame(maxWidth: .infinity).padding(.vertical, 14)
-                    .background(Theme.green, in: Capsule())
-
-                    Text("Preferences").font(.headline)
-                    toggle("Outdoor readability", "Higher contrast for range use", $outdoor)
-                    toggle("Notifications", "Challenges, streaks, and session recaps", $notifications)
-
-                    Button("Sign out") { auth.signOut() }
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(Theme.danger)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                    profileSection
+                    preferencesSection
+                    privacySection
+                    supportSection
+                    accountSection
                 }
                 .padding(18)
             }
         }
         .background(Theme.cream.ignoresSafeArea())
+        .sheet(item: $legalDocument) { document in
+            LegalDocumentView(document: document) { legalDocument = nil }
+        }
+        .sheet(isPresented: $showDeleteAccount) {
+            DeleteAccountView(onClose: { showDeleteAccount = false })
+                .environmentObject(auth)
+        }
         .onAppear {
             name = auth.user.name
             city = auth.user.city
             bio = auth.user.bio
             handicap = auth.user.handicap
+        }
+    }
+
+    private var profileSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Profile").font(.headline)
+            field("Name", text: $name)
+            field("City", text: $city)
+            field("Bio", text: $bio)
+            VStack(alignment: .leading) {
+                HStack {
+                    Text("Handicap")
+                    Spacer()
+                    Text(String(format: "%.1f", handicap)).foregroundStyle(Theme.greenDark)
+                }
+                Slider(value: $handicap, in: 0...36, step: 0.1).tint(Theme.green)
+            }
+            .padding(14)
+            .fairCard()
+
+            Button("Save profile") {
+                auth.updateProfile(name: name, city: city, bio: bio, handicap: handicap)
+                onClose()
+            }
+            .font(.subheadline.weight(.bold)).foregroundStyle(.white)
+            .frame(maxWidth: .infinity).padding(.vertical, 14)
+            .background(Theme.green, in: Capsule())
+        }
+    }
+
+    private var preferencesSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Preferences").font(.headline)
+            toggle("Outdoor readability", "Higher contrast for range use", $outdoor)
+            toggle("Notifications", "Challenges, streaks, and session recaps", $notifications)
+        }
+    }
+
+    private var privacySection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Privacy & data").font(.headline)
+            VStack(spacing: 0) {
+                row("Privacy Policy", icon: "hand.raised") { legalDocument = .privacy }
+                divider
+                row("Terms of Use", icon: "doc.text") { legalDocument = .terms }
+                divider
+                row(exportedData ? "Copied to clipboard" : "Export my data", icon: "square.and.arrow.down") {
+                    UIPasteboard.general.string = auth.exportAccountData()
+                    exportedData = true
+                }
+            }
+            .fairCard()
+        }
+    }
+
+    private var supportSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Support").font(.headline)
+            VStack(spacing: 0) {
+                linkRow("Contact support", icon: "envelope", url: AppConfig.supportMailtoURL)
+                divider
+                linkRow("Help centre", icon: "questionmark.circle", url: AppConfig.supportURL)
+            }
+            .fairCard()
+        }
+    }
+
+    private var accountSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Account").font(.headline)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Signed in as \(auth.session?.email ?? "—")")
+                    .font(.caption)
+                    .foregroundStyle(Theme.muted)
+                Text(auth.session?.resolvedProvider == .apple
+                     ? "Using Sign in with Apple"
+                     : "Using email and password")
+                    .font(.caption)
+                    .foregroundStyle(Theme.muted)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .fairCard()
+
+            Button("Sign out") { auth.signOut() }
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(Theme.greenDark)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .fairCard()
+
+            Button("Delete account") { showDeleteAccount = true }
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(Theme.danger)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+
+            Text("\(AppConfig.appName) · \(AppConfig.versionLabel)")
+                .font(.caption2)
+                .foregroundStyle(Theme.muted)
+                .frame(maxWidth: .infinity)
+        }
+    }
+
+    private var divider: some View {
+        Rectangle().frame(height: 1).foregroundStyle(Color(white: 0.92))
+    }
+
+    private func row(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon).frame(width: 22).foregroundStyle(Theme.greenDark)
+                Text(title).font(.subheadline)
+                Spacer()
+                Image(systemName: "chevron.right").font(.caption).foregroundStyle(Theme.muted)
+            }
+            .padding(14)
+        }
+        .foregroundStyle(Theme.ink)
+    }
+
+    @ViewBuilder
+    private func linkRow(_ title: String, icon: String, url: URL?) -> some View {
+        if let url {
+            Link(destination: url) {
+                HStack(spacing: 12) {
+                    Image(systemName: icon).frame(width: 22).foregroundStyle(Theme.greenDark)
+                    Text(title).font(.subheadline)
+                    Spacer()
+                    Image(systemName: "arrow.up.right").font(.caption).foregroundStyle(Theme.muted)
+                }
+                .padding(14)
+            }
+            .foregroundStyle(Theme.ink)
         }
     }
 

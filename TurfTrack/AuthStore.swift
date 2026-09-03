@@ -1,5 +1,11 @@
+import AuthenticationServices
 import Combine
 import Foundation
+
+enum AuthProvider: String, Codable {
+    case email
+    case apple
+}
 
 struct AuthAccount: Codable, Identifiable, Equatable {
     var id: String
@@ -13,6 +19,11 @@ struct AuthAccount: Codable, Identifiable, Equatable {
     var bag: [String]
     var bio: String
     var needsSetup: Bool
+    /// Absent in accounts saved before Sign in with Apple shipped, so it decodes as nil.
+    var provider: AuthProvider?
+    var appleUserID: String?
+
+    var resolvedProvider: AuthProvider { provider ?? .email }
 }
 
 @MainActor
@@ -78,7 +89,77 @@ final class AuthStore: ObservableObject {
             skill: "Beginner",
             bag: ["Driver", "7 Iron", "Pitching Wedge"],
             bio: "New to fairLie — building my strike.",
-            needsSetup: true
+            needsSetup: true,
+            provider: .email,
+            appleUserID: nil
+        )
+        accounts.append(account)
+        apply(account)
+        persist()
+    }
+
+    // MARK: - Sign in with Apple
+
+    func configureAppleRequest(_ request: ASAuthorizationAppleIDRequest) {
+        request.requestedScopes = [.fullName, .email]
+    }
+
+    func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) {
+        errorMessage = nil
+        switch result {
+        case .failure(let error):
+            if (error as? ASAuthorizationError)?.code == .canceled { return }
+            errorMessage = "Sign in with Apple failed. \(error.localizedDescription)"
+        case .success(let authorization):
+            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
+                errorMessage = "Sign in with Apple returned an unexpected credential."
+                return
+            }
+            signInWithApple(credential: credential)
+        }
+    }
+
+    private func signInWithApple(credential: ASAuthorizationAppleIDCredential) {
+        let appleUserID = credential.user
+
+        // Apple only returns name and email on the very first authorization, so an
+        // existing account is matched on the stable user identifier.
+        if let existing = accounts.first(where: { $0.appleUserID == appleUserID }) {
+            apply(existing)
+            return
+        }
+
+        let fullName = [credential.fullName?.givenName, credential.fullName?.familyName]
+            .compactMap { $0 }
+            .joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let displayName = fullName.isEmpty ? "fairLie Golfer" : fullName
+        let email = credential.email?.lowercased() ?? "\(appleUserID.prefix(8))@privaterelay.appleid.com"
+
+        if let index = accounts.firstIndex(where: { $0.email == email }) {
+            // Link Apple to the account this person already created with email.
+            accounts[index].appleUserID = appleUserID
+            let linked = accounts[index]
+            apply(linked)
+            persist()
+            return
+        }
+
+        let slug = displayName.lowercased().replacingOccurrences(of: " ", with: "_")
+        let account = AuthAccount(
+            id: "apple-\(appleUserID.prefix(12))",
+            email: email,
+            password: "",
+            name: displayName,
+            username: "@\(slug)_golf",
+            city: "",
+            handicap: 18,
+            skill: "Beginner",
+            bag: ["Driver", "7 Iron", "Pitching Wedge"],
+            bio: "New to fairLie — building my strike.",
+            needsSetup: true,
+            provider: .apple,
+            appleUserID: appleUserID
         )
         accounts.append(account)
         apply(account)
@@ -108,6 +189,53 @@ final class AuthStore: ObservableObject {
         session = nil
         user = .sample
         UserDefaults.standard.removeObject(forKey: sessionKey)
+    }
+
+    /// Permanently removes the signed-in account and everything stored against it.
+    /// Required by App Store Review Guideline 5.1.1(v) for any app with account creation.
+    func deleteAccount() {
+        guard let account = session else { return }
+        accounts.removeAll { $0.id == account.id }
+        persist()
+
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: sessionKey)
+        for key in Self.userScopedKeys {
+            defaults.removeObject(forKey: key)
+        }
+
+        session = nil
+        user = .sample
+        errorMessage = nil
+    }
+
+    /// Everything written to disk on the user's behalf, cleared on account deletion.
+    private static let userScopedKeys = [
+        "fairlie.sessions",
+        "fairlie.swings",
+        "fairlie.preferences"
+    ]
+
+    /// Plain-text copy of the account record, for the "download my data" affordance.
+    func exportAccountData() -> String {
+        guard let account = session else { return "No account is signed in." }
+        var lines = [
+            "\(AppConfig.appName) account export",
+            "Generated: \(ISO8601DateFormatter().string(from: Date()))",
+            "",
+            "Name: \(account.name)",
+            "Username: \(account.username)",
+            "Email: \(account.email)",
+            "Sign-in method: \(account.resolvedProvider == .apple ? "Sign in with Apple" : "Email and password")",
+            "City: \(account.city.isEmpty ? "—" : account.city)",
+            "Handicap: \(String(format: "%.1f", account.handicap))",
+            "Skill level: \(account.skill)",
+            "Bag: \(account.bag.joined(separator: ", "))",
+            "Bio: \(account.bio.isEmpty ? "—" : account.bio)"
+        ]
+        lines.append("")
+        lines.append("Account data is stored on this device only and is not uploaded to a server.")
+        return lines.joined(separator: "\n")
     }
 
     private func update(_ account: AuthAccount) {

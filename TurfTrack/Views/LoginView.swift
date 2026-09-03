@@ -1,3 +1,4 @@
+import AuthenticationServices
 import SwiftUI
 
 struct LoginView: View {
@@ -6,6 +7,7 @@ struct LoginView: View {
     @State private var name = ""
     @State private var email = ""
     @State private var password = ""
+    @State private var legalDocument: LegalDocument?
 
     var body: some View {
         ScrollView {
@@ -74,11 +76,7 @@ struct LoginView: View {
                     .padding(.vertical, 14)
                     .background(Theme.green, in: Capsule())
 
-                    Text("Accounts are saved on this device for the demo. Connect a mat after signing in.")
-                        .font(.caption)
-                        .foregroundStyle(Theme.muted)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
+                    appleSignInAndLegal
                 }
                 .padding(18)
                 .fairCard()
@@ -86,6 +84,48 @@ struct LoginView: View {
             .padding(18)
         }
         .background(Theme.cream.ignoresSafeArea())
+        .sheet(item: $legalDocument) { document in
+            LegalDocumentView(document: document) { legalDocument = nil }
+        }
+    }
+
+    private var appleSignInAndLegal: some View {
+        VStack(spacing: 14) {
+            HStack(spacing: 10) {
+                Rectangle().frame(height: 1).foregroundStyle(Color(white: 0.88))
+                Text("or").font(.caption).foregroundStyle(Theme.muted)
+                Rectangle().frame(height: 1).foregroundStyle(Color(white: 0.88))
+            }
+
+            SignInWithAppleButton(mode == "sign-in" ? .signIn : .signUp) { request in
+                auth.configureAppleRequest(request)
+            } onCompletion: { result in
+                auth.handleAppleSignIn(result)
+            }
+            .signInWithAppleButtonStyle(.black)
+            .frame(height: 48)
+            .clipShape(Capsule())
+
+            legalFooter
+        }
+    }
+
+    private var legalFooter: some View {
+        VStack(spacing: 8) {
+            Text("Your fairLie account stores your profile and swing history on this device.")
+                .font(.caption)
+                .foregroundStyle(Theme.muted)
+                .multilineTextAlignment(.center)
+
+            HStack(spacing: 6) {
+                Button("Privacy Policy") { legalDocument = .privacy }
+                Text("·").foregroundStyle(Theme.muted)
+                Button("Terms of Use") { legalDocument = .terms }
+            }
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(Theme.greenDark)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private func chip(_ title: String, id: String) -> some View {
