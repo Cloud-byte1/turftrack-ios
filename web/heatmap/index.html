@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Golf Mat — Live Strike Heatmap</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #22c55e;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .wrap { max-width: 560px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: 1.5rem; margin: 0 0 4px; }
+    h2 { font-size: 1.05rem; margin: 0 0 8px; color: #e2e8f0; }
+    .muted { color: var(--muted); font-size: 0.9rem; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin: 14px 0;
+    }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .stat {
+      flex: 1 1 110px;
+      background: #0f172a;
+      border-radius: 8px;
+      padding: 10px;
+      border: 1px solid var(--border);
+    }
+    .stat .v { font-size: 1.25rem; font-weight: 700; }
+    .stat .l { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    button {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: #334155;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    button:hover { background: #475569; }
+    button.primary {
+      background: var(--accent);
+      color: #052e16;
+      border-color: #16a34a;
+      font-weight: 600;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      font-size: 0.8rem;
+    }
+    .bar {
+      height: 10px;
+      background: #0f172a;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .bar > div { height: 100%; transition: width 0.15s linear; }
+    .status {
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+      font-size: 0.9rem;
+      margin-top: 10px;
+    }
+    .status.ok { border-color: #16a34a; color: #86efac; }
+    .status.wait { border-color: #ca8a04; color: #fde68a; }
+    .status.err { border-color: #dc2626; color: #fca5a5; }
+    .history { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .ghost {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px;
+      background: #0f172a;
+    }
+    svg { display: block; margin: 0 auto; max-width: 100%; }
+    .space { height: 8px; }
+    code { color: #86efac; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Golf Strike Heatmap</h1>
+    <p class="muted">Live 2×3 pad grid via Web Serial (ESP32 @ 115200 baud)</p>
+
+    <div id="status" class="status wait">Not connected — use Chrome or Edge</div>
+    <div class="space"></div>
+    <div class="row">
+      <button id="btnConnect" class="primary" type="button">Connect ESP32</button>
+      <button id="btnDisconnect" type="button" hidden>Disconnect</button>
+      <span id="livePill" class="pill">OFFLINE</span>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:8px">
+        <strong>Club face</strong>
+        <span id="zonePill" class="pill">Center</span>
+      </div>
+      <div id="faceMain"></div>
+      <div id="arrowMain" style="text-align:center"></div>
+    </div>
+
+    <div class="card">
+      <h2>Strike stats</h2>
+      <div class="row" style="justify-content:space-between;margin-bottom:6px">
+        <span class="muted" id="qualityLabel">Impact quality 95/100</span>
+        <span class="muted" id="distLabel">230 m</span>
+      </div>
+      <div class="bar"><div id="qualityBar" style="width:95%;background:#22c55e"></div></div>
+      <div class="space"></div>
+      <div class="row">
+        <div class="stat"><div class="v" id="statQuality">95</div><div class="l">Quality</div></div>
+        <div class="stat"><div class="v" id="statDist">230m</div><div class="l">Estimated Distance</div></div>
+        <div class="stat"><div class="v" id="statDir">Straight</div><div class="l">Direction</div></div>
+        <div class="stat"><div class="v" id="statPenalty">0</div><div class="l">Penalty</div></div>
+      </div>
+      <div class="space"></div>
+      <div class="row" style="justify-content:space-between">
+        <span class="muted" id="heelPct">Heel 50%</span>
+        <span id="centerPct">Center 49%</span>
+        <span class="muted" id="toePct">Toe 50%</span>
+      </div>
+      <div class="space"></div>
+      <div class="muted" id="peaksLabel" style="font-size:0.8rem"></div>
+    </div>
+
+    <div class="card">
+      <h2>Demo presets (no serial)</h2>
+      <div class="row" id="presetRow"></div>
+    </div>
+
+    <div class="card">
+      <h2>Last 5 strikes</h2>
+      <div class="history" id="history"></div>
+    </div>
+
+    <p class="muted" style="font-size:0.8rem">
+      Close <code>idf.py monitor</code> before connecting. Firmware must log
+      <code>peaks=</code> on each Swing line.
+    </p>
+  </div>
+
+  <script>
+(() => {
+  const ZONE_LABELS = ["Heel", "Heel-Ctr", "Center", "Toe-Ctr", "Toe"];
+  const DIR_LABELS = ["Straight", "Left", "Right", "Push", "Pull"];
+  const BAUD = 115200;
+
+  const SWEET = {
+    fsr_peaks: [95, 100, 185, 178, 90, 88],
+    strike_zone: 2,
+    strike_direction: 0,
+    heel_pressure_pct: 50,
+    center_pressure_pct: 49,
+    toe_pressure_pct: 50,
+    impact_quality: 95,
+    estimated_distance_m: 230,
+    direction_penalty: 0,
+    direction_label: "Straight",
+  };
+
+  let swing = { ...SWEET, fsr_peaks: [...SWEET.fsr_peaks] };
+  let history = [{ ...SWEET, fsr_peaks: [...SWEET.fsr_peaks] }];
+  let anim = { flash: false, heat: 1, arrow: 1, quality: 95 };
+  let busy = false;
+  let port = null;
+  let reader = null;
+  let keepReading = false;
+  const timers = [];
+
+  const $ = (id) => document.getElementById(id);
+
+  function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
+
+  function pressureFill(mv) {
+    if (mv < 90) return { color: "#3b82f6", opacity: 0.35 };
+    if (mv < 130) return { color: "#eab308", opacity: 0.55 };
+    if (mv < 180) return { color: "#f97316", opacity: 0.75 };
+    return { color: "#ef4444", opacity: 1 };
+  }
+
+  function qualityColor(q) {
+    if (q >= 80) return "#22c55e";
+    if (q >= 60) return "#eab308";
+    if (q >= 40) return "#f97316";
+    return "#ef4444";
+  }
+
+  function arrowAngle(dir) {
+    return [0, -35, 35, 28, -28][dir] ?? 0;
+  }
+
+  function arrowColor(dir) {
+    if (dir === 0) return "#22c55e";
+    if (dir === 1 || dir === 2) return "#f97316";
+    return "#ef4444";
+  }
+
+  function analyzePeaks(peaks) {
+    const heel = peaks[0] + peaks[2] + peaks[4];
+    const toe = peaks[1] + peaks[3] + peaks[5];
+    const center = peaks[2] + peaks[3];
+    const front = peaks[0] + peaks[1];
+    const rear = peaks[4] + peaks[5];
+    const total = Math.max(1, heel + toe);
+    const heel_pct = Math.round((heel * 100) / total);
+    const toe_pct = Math.round((toe * 100) / total);
+    const center_pct = Math.round((center * 100) / total);
+    const peak_idx = peaks.indexOf(Math.max(...peaks));
+
+    let strike_zone = 2;
+    if (center_pct >= 40 && center >= heel / 2 && center >= toe / 2 && (peak_idx === 2 || peak_idx === 3)) {
+      strike_zone = 2;
+    } else if (heel_pct >= 40 && heel_pct >= toe_pct) {
+      strike_zone = peaks[2] >= peaks[0] && peaks[2] >= peaks[4] ? 1 : 0;
+    } else if (toe_pct >= 40 && toe_pct >= heel_pct) {
+      strike_zone = peaks[3] >= peaks[1] && peaks[3] >= peaks[5] ? 3 : 4;
+    } else {
+      strike_zone = peak_idx % 2 === 0 ? (peak_idx === 2 ? 1 : 0) : (peak_idx === 3 ? 3 : 4);
+    }
+
+    let strike_direction = 0;
+    let direction_label = "Straight";
+    let direction_penalty = 0;
+    if (heel_pct > toe_pct + 20) {
+      strike_direction = 1;
+      direction_label = strike_zone === 0 ? "Left" : "Slight Left";
+      direction_penalty = strike_zone === 0 ? 40 : 20;
+    } else if (toe_pct > heel_pct + 20) {
+      strike_direction = 2;
+      direction_label = strike_zone === 4 ? "Right" : "Slight Right";
+      direction_penalty = strike_zone === 4 ? 40 : 20;
+    } else {
+      const frTotal = Math.max(1, front + rear + center);
+      const front_pct = Math.round((front * 100) / frTotal);
+      const rear_pct = Math.round((rear * 100) / frTotal);
+      if (front_pct > rear_pct + 20) {
+        strike_direction = 3; direction_label = "Push"; direction_penalty = 30;
+      } else if (rear_pct > front_pct + 20) {
+        strike_direction = 4; direction_label = "Pull"; direction_penalty = 30;
+      }
+    }
+    return {
+      strike_zone, strike_direction, heel_pressure_pct: heel_pct,
+      center_pressure_pct: center_pct, toe_pressure_pct: toe_pct,
+      direction_label, direction_penalty,
+    };
+  }
+
+  function parseSwingLine(text) {
+    if (!text.includes("Swing:")) return null;
+    const num = (re, fb = 0) => {
+      const m = text.match(re);
+      return m ? Number(m[1]) : fb;
+    };
+    let peaks = [0, 0, 0, 0, 0, 0];
+    const pm = text.match(/peaks=([\d,]+)/);
+    if (pm) peaks = pm[1].split(",").map(Number).concat([0,0,0,0,0,0]).slice(0, 6);
+    const analyzed = analyzePeaks(peaks);
+    const dirLabel = text.match(/dir=([^\s]+)/);
+    return {
+      fsr_peaks: peaks,
+      strike_zone: num(/zone_id=(\d+)/, analyzed.strike_zone),
+      strike_direction: num(/dir_id=(\d+)/, analyzed.strike_direction),
+      heel_pressure_pct: num(/heel=(\d+)%/, analyzed.heel_pressure_pct),
+      center_pressure_pct: num(/center=(\d+)%/, analyzed.center_pressure_pct),
+      toe_pressure_pct: num(/toe=(\d+)%/, analyzed.toe_pressure_pct),
+      impact_quality: num(/quality=(\d+)/),
+      estimated_distance_m: num(/estimated_distance=(\d+)m/),
+      direction_penalty: num(/penalty=(\d+)/, analyzed.direction_penalty),
+      direction_label: dirLabel?.[1] ?? analyzed.direction_label,
+    };
+  }
+
+  function generateSwing(preset) {
+    let peaks;
+    if (preset === "sweet") return { ...SWEET, fsr_peaks: [...SWEET.fsr_peaks] };
+    if (preset === "heel") peaks = [175, 80, 155, 85, 140, 70];
+    else if (preset === "toe") peaks = [75, 170, 88, 160, 70, 150];
+    else if (preset === "thin") peaks = [95, 100, 105, 102, 98, 92];
+    else {
+      peaks = Array.from({ length: 6 }, () => 70 + Math.floor(Math.random() * 130));
+      const bias = Math.floor(Math.random() * 6);
+      peaks[bias] = 150 + Math.floor(Math.random() * 60);
+    }
+    const a = analyzePeaks(peaks);
+    const peak = Math.max(...peaks);
+    let quality = 40, dist = 60;
+    if (peak > 160) {
+      quality = clamp(Math.round(85 + ((peak - 160) * 15) / 60), 85, 100);
+      dist = clamp(Math.round(150 + ((peak - 160) * 100) / 60), 150, 250);
+    } else if (peak > 130) {
+      quality = clamp(Math.round(65 + ((peak - 130) * 19) / 30), 65, 84);
+      dist = clamp(Math.round(100 + ((peak - 130) * 49) / 30), 100, 149);
+    } else if (peak > 110) {
+      quality = clamp(Math.round(40 + ((peak - 110) * 24) / 20), 40, 64);
+      dist = clamp(Math.round(50 + ((peak - 110) * 49) / 20), 50, 99);
+    }
+    return {
+      fsr_peaks: peaks, ...a, impact_quality: quality,
+      estimated_distance_m: Math.round((dist * (100 - a.direction_penalty)) / 100),
+    };
+  }
+
+  function centroidXY(peaks, w, h, pad, labelH) {
+    const faceW = w - pad * 2, faceH = h - pad * 2 - labelH;
+    const cellW = faceW / 2, cellH = faceH / 3;
+    let wx = 0, wy = 0, t = 0;
+    for (let i = 0; i < 6; i++) {
+      wx += peaks[i] * ((i % 2) + 0.5);
+      wy += peaks[i] * (Math.floor(i / 2) + 0.5);
+      t += peaks[i];
+    }
+    if (!t) return { x: pad + faceW / 2, y: pad + faceH / 2 };
+    return { x: pad + (wx / t) * cellW, y: pad + (wy / t) * cellH };
+  }
+
+  function renderFace(container, s, heat, flash, compact) {
+    const w = compact ? 140 : 280;
+    const h = compact ? 160 : 300;
+    const pad = compact ? 8 : 16;
+    const labelH = compact ? 0 : 20;
+    const faceW = w - pad * 2, faceH = h - pad * 2 - labelH;
+    const cellW = faceW / 2, cellH = faceH / 3;
+    const peaks = s.fsr_peaks;
+    const maxIdx = peaks.indexOf(Math.max(...peaks));
+    const c = centroidXY(peaks, w, h, pad, labelH);
+
+    let cells = "";
+    for (let i = 0; i < 6; i++) {
+      const col = i % 2, row = Math.floor(i / 2);
+      const { color, opacity } = pressureFill(peaks[i]);
+      const x = pad + col * cellW, y = pad + row * cellH;
+      cells += `<rect x="${x + 4}" y="${y + 4}" width="${cellW - 8}" height="${cellH - 8}" rx="10"
+        fill="${color}" fill-opacity="${opacity * heat}" />`;
+      if (i === maxIdx && heat > 0.5 && !compact) {
+        cells += `<rect x="${x + 4}" y="${y + 4}" width="${cellW - 8}" height="${cellH - 8}" rx="10"
+          fill="none" stroke="#fff" stroke-width="2" opacity="${0.85 * heat}" />`;
+      }
+      if (!compact) {
+        cells += `<text x="${x + cellW / 2}" y="${y + cellH / 2 + 4}" text-anchor="middle"
+          fill="#e2e8f0" font-size="11" opacity="0.7">S${i}</text>`;
+      }
+    }
+
+    container.innerHTML = `
+      <svg width="100%" viewBox="0 0 ${w} ${h}" style="max-width:${w}px">
+        <rect x="${pad}" y="${pad}" width="${faceW}" height="${faceH}" rx="14"
+          fill="${flash ? "#f8fafc" : "#0f172a"}" stroke="#475569" stroke-width="1.5" />
+        ${!compact ? `<rect x="${pad + 4}" y="${pad + cellH + 4}" width="${faceW - 8}" height="${cellH - 8}" rx="8"
+          fill="none" stroke="#64748b" stroke-dasharray="4 3" opacity="0.55" />` : ""}
+        ${cells}
+        ${heat > 0.3 ? `
+          <circle cx="${c.x}" cy="${c.y}" r="${compact ? 5 : 9}" fill="#fff" fill-opacity="${0.9 * heat}" />
+          <line x1="${c.x - 12}" y1="${c.y}" x2="${c.x + 12}" y2="${c.y}" stroke="#0f172a" stroke-width="2" />
+          <line x1="${c.x}" y1="${c.y - 12}" x2="${c.x}" y2="${c.y + 12}" stroke="#0f172a" stroke-width="2" />
+        ` : ""}
+        ${!compact ? `
+          <text x="${pad + cellW / 2}" y="${pad + faceH + 16}" text-anchor="middle" fill="#94a3b8" font-size="11">HEEL</text>
+          <text x="${pad + cellW * 1.5}" y="${pad + faceH + 16}" text-anchor="middle" fill="#94a3b8" font-size="11">TOE</text>
+        ` : ""}
+      </svg>`;
+  }
+
+  function renderArrow(container, s, progress) {
+    const angle = arrowAngle(s.strike_direction);
+    const color = arrowColor(s.strike_direction);
+    const yOff = (1 - progress) * 24;
+    container.innerHTML = `
+      <svg width="80" height="72" viewBox="0 0 80 72">
+        <g transform="translate(40 ${40 + yOff}) rotate(${angle})" opacity="${progress}">
+          <line x1="0" y1="18" x2="0" y2="-16" stroke="${color}" stroke-width="4" stroke-linecap="round" />
+          <polygon points="0,-26 -9,-10 9,-10" fill="${color}" />
+        </g>
+      </svg>
+      <div class="muted">Ball flight: ${s.direction_label}</div>`;
+  }
+
+  function setStatus(msg, kind) {
+    const el = $("status");
+    el.textContent = msg;
+    el.className = "status " + (kind || "wait");
+  }
+
+  function renderAll() {
+    renderFace($("faceMain"), swing, anim.heat, anim.flash, false);
+    renderArrow($("arrowMain"), swing, anim.arrow);
+    $("zonePill").textContent = ZONE_LABELS[swing.strike_zone] || "Center";
+    $("qualityLabel").textContent = `Impact quality ${anim.quality}/100`;
+    $("distLabel").textContent = `${swing.estimated_distance_m} m`;
+    $("qualityBar").style.width = `${clamp(anim.quality, 0, 100)}%`;
+    $("qualityBar").style.background = qualityColor(anim.quality);
+    $("statQuality").textContent = String(anim.quality);
+    $("statDist").textContent = `${swing.estimated_distance_m}m`;
+    $("statDir").textContent = DIR_LABELS[swing.strike_direction] || swing.direction_label;
+    $("statPenalty").textContent = String(swing.direction_penalty);
+    $("heelPct").textContent = `Heel ${swing.heel_pressure_pct}%`;
+    $("centerPct").textContent = `Center ${swing.center_pressure_pct}%`;
+    $("toePct").textContent = `Toe ${swing.toe_pressure_pct}%`;
+    $("peaksLabel").textContent =
+      `Grid mV: [${swing.fsr_peaks[0]}, ${swing.fsr_peaks[1]}] [${swing.fsr_peaks[2]}, ${swing.fsr_peaks[3]}] [${swing.fsr_peaks[4]}, ${swing.fsr_peaks[5]}]`;
+
+    const hist = $("history");
+    hist.innerHTML = "";
+    history.forEach((s, i) => {
+      const div = document.createElement("div");
+      div.className = "ghost";
+      div.style.width = `${120 * (1 - i * 0.12)}px`;
+      div.style.opacity = String(1 - i * 0.18);
+      const face = document.createElement("div");
+      renderFace(face, s, 1, false, true);
+      div.appendChild(face);
+      const lab = document.createElement("div");
+      lab.className = "muted";
+      lab.style.fontSize = "0.75rem";
+      lab.textContent = `${ZONE_LABELS[s.strike_zone]} · ${s.impact_quality}`;
+      div.appendChild(lab);
+      hist.appendChild(div);
+    });
+  }
+
+  function clearTimers() {
+    while (timers.length) clearTimeout(timers.pop());
+  }
+
+  function later(ms, fn) {
+    timers.push(setTimeout(fn, ms));
+  }
+
+  function animateStrike(next) {
+    clearTimers();
+    busy = true;
+    swing = next;
+    history = [next, ...history].slice(0, 5);
+    anim = { flash: true, heat: 0, arrow: 0, quality: 0 };
+    renderAll();
+
+    later(180, () => { anim.flash = false; renderAll(); });
+    later(220, () => { anim.heat = 0.35; renderAll(); });
+    later(360, () => { anim.heat = 0.7; renderAll(); });
+    later(500, () => { anim.heat = 1; renderAll(); });
+    later(280, () => { anim.arrow = 0.5; renderAll(); });
+    later(480, () => { anim.arrow = 1; renderAll(); });
+
+    for (let i = 1; i <= 12; i++) {
+      later(200 + i * 50, () => {
+        anim.quality = Math.round((next.impact_quality * i) / 12);
+        if (i === 12) busy = false;
+        renderAll();
+      });
+    }
+  }
+
+  async function disconnect() {
+    keepReading = false;
+    try { await reader?.cancel(); } catch {}
+    try { await port?.close(); } catch {}
+    reader = null;
+    port = null;
+    $("btnConnect").hidden = false;
+    $("btnDisconnect").hidden = true;
+    $("livePill").textContent = "OFFLINE";
+    setStatus("Disconnected", "wait");
+  }
+
+  async function connectSerial() {
+    if (!("serial" in navigator)) {
+      setStatus("Web Serial not supported. Use Chrome or Edge on http://localhost", "err");
+      return;
+    }
+    try {
+      setStatus("Pick your ESP32 port (COM4)…", "wait");
+      port = await navigator.serial.requestPort();
+      await port.open({ baudRate: BAUD });
+      keepReading = true;
+      $("btnConnect").hidden = true;
+      $("btnDisconnect").hidden = false;
+      $("livePill").textContent = "LIVE";
+      setStatus("Connected — waiting for swing…", "ok");
+
+      const decoder = new TextDecoderStream();
+      const input = port.readable.pipeThrough(decoder);
+      reader = input.getReader();
+      let buffer = "";
+
+      while (keepReading) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += value;
+        const lines = buffer.split(/\r?\n/);
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          const parsed = parseSwingLine(line);
+          if (parsed) {
+            setStatus(`Live swing · quality ${parsed.impact_quality} · ${ZONE_LABELS[parsed.strike_zone]}`, "ok");
+            animateStrike(parsed);
+          }
+        }
+      }
+    } catch (err) {
+      setStatus(err?.message || "Serial connection failed. Close idf.py monitor first.", "err");
+      await disconnect();
+    }
+  }
+
+  // Presets
+  const presets = [
+    ["sweet", "Sweet Spot"],
+    ["heel", "Heel Strike"],
+    ["toe", "Toe Strike"],
+    ["thin", "Thin Hit"],
+    ["random", "Random"],
+  ];
+  const presetRow = $("presetRow");
+  presets.forEach(([key, label]) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = label;
+    b.addEventListener("click", () => {
+      if (!busy) animateStrike(generateSwing(key));
+    });
+    presetRow.appendChild(b);
+  });
+
+  $("btnConnect").addEventListener("click", connectSerial);
+  $("btnDisconnect").addEventListener("click", disconnect);
+
+  renderAll();
+})();
+  </script>
+</body>
+</html>
