@@ -23,8 +23,8 @@ enum LegalDocument: String, Identifiable {
 
     var effectiveDate: String {
         switch self {
-        case .privacy: return "September 27, 2026"
-        case .terms: return "September 3, 2026"
+        case .privacy: return "September 28, 2026"
+        case .terms: return "September 28, 2026"
         }
     }
 
@@ -49,19 +49,23 @@ enum LegalCopy {
         LegalSection(
             heading: "What we collect",
             body: """
-            fairLie collects the profile details you enter — name, username, email address, home city, handicap, skill level, club bag, and bio — plus the swing and strike data produced when you practice. Swing data includes impact quality, strike location on the mat, club and ball speed, attack angle, club path, and the timestamp of each shot.
+            With an account, fairLie collects the profile details you enter — name, username, email address, home city, handicap, skill level, club bag, and bio — plus the practice sessions you save and anything you post in the Clubhouse. Session data includes strike scores, strike location and pressure on the mat, estimated carry, club speed, and attack angle, ball speed (measured when the radar is linked, otherwise estimated), club path, and when the session happened.
             """
         ),
         LegalSection(
             heading: "How your data is stored",
             body: """
-            Your account, profile, and practice sessions are stored with our cloud database provider, Supabase, so they follow you across devices. Sign-in tokens are kept in your iPhone's Keychain. Your practice sessions are private to your account. Your display name, username, handicap, streak, and average strike score appear on the Clubhouse leaderboard, and posts you share in the Clubhouse feed are visible to other fairLie golfers. We do not sell or share your data with data brokers or advertisers.
+            Accounts: your profile, practice sessions, and Clubhouse activity are stored with our cloud database provider, Supabase. Sign-in tokens are kept in your iPhone's Keychain. Your practice sessions are private to your account. Your display name, username, handicap, streak, and average strike score appear on the Clubhouse leaderboard, and posts you share in the Clubhouse feed are visible to other signed-in golfers.
+
+            Guest mode: if you continue without an account, your profile and sessions are stored only on this iPhone and are never uploaded. Sessions that include simulated swings are also kept only on this iPhone, even when you're signed in.
+
+            We do not sell or share your data with data brokers or advertisers.
             """
         ),
         LegalSection(
             heading: "Bluetooth",
             body: """
-            fairLie uses Bluetooth solely to discover and connect to your GolfMat practice mat and to receive strike measurements from it. Bluetooth is never used to determine your location, to build an advertising profile, or to scan for nearby people or beacons.
+            fairLie uses Bluetooth only to connect to your GolfMat practice mat and the optional fairLie radar sensor, receive strike readings from them, and reconnect to the last device you used. Bluetooth is never used to determine your location, to build an advertising profile, or to scan for nearby people or beacons.
             """
         ),
         LegalSection(
@@ -79,7 +83,7 @@ enum LegalCopy {
         LegalSection(
             heading: "Your choices",
             body: """
-            You can edit your profile at any time from Settings. You can export a copy of your account record from Settings → Privacy & data. You can permanently delete your account and all associated practice data from Settings → Delete account; deletion is immediate and cannot be undone.
+            You can edit your profile at any time from Settings. You can export a copy of your account record from Settings → Privacy & data. You can permanently delete your account and all associated data — profile, sessions, posts, likes, RSVPs, and challenge progress — from Settings → Delete account; deletion is immediate and cannot be undone. Guests can erase their guest profile and sessions from Settings → Erase guest data, or by deleting the app.
             """
         ),
         LegalSection(
@@ -112,13 +116,13 @@ enum LegalCopy {
         LegalSection(
             heading: "Acceptable use",
             body: """
-            You agree not to reverse engineer the app, interfere with its operation, upload unlawful or abusive content to social features such as the Clubhouse, or misrepresent your results in challenges and leaderboards.
+            You agree not to reverse engineer the app, interfere with its operation, post unlawful, harassing, or abusive content in the Clubhouse, or misrepresent your results in challenges and leaderboards. You can report, hide, or block posts; we review reports and may remove content or suspend accounts that break these rules.
             """
         ),
         LegalSection(
             heading: "Measurement accuracy",
             body: """
-            fairLie reports sensor measurements and derived coaching estimates from your practice mat. These figures are training aids, not certified instrumentation, and accuracy depends on correct mat setup and calibration. Do not rely on them for club fitting, competition scoring, or any purpose requiring certified measurement.
+            fairLie reports sensor readings and derived coaching estimates. Carry distance, club speed, and attack angle are always estimates from the mat sensors; ball speed is measured only when the radar sensor is linked and is otherwise estimated. Simulated swings are made up for practice and are labeled as such. These figures are training aids, not certified instrumentation, and accuracy depends on correct setup and calibration. Do not rely on them for club fitting, competition scoring, or any purpose requiring certified measurement.
             """
         ),
         LegalSection(

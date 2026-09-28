@@ -18,7 +18,7 @@ final class CloudSync: ObservableObject {
     @Published private(set) var challenges: [ClubChallenge] = []
     @Published private(set) var feed: [FeedPost] = []
     @Published private(set) var announcements: [Announcement] = []
-    @Published private(set) var events: [ClubEvent] = ClubEvent.fallback
+    @Published private(set) var events: [ClubEvent] = []
     @Published private(set) var stats = CloudProfileStats()
     @Published private(set) var hiddenPostIDs: Set<String>
     @Published private(set) var blockedAuthors: Set<String>
@@ -39,7 +39,7 @@ final class CloudSync: ObservableObject {
 
     var statusLabel: String {
         switch status {
-        case .offline: return isConfigured ? "Not synced yet" : "Offline · sample data"
+        case .offline: return isConfigured ? "Not synced yet" : "Clubhouse offline"
         case .syncing: return "Syncing Clubhouse…"
         case .synced(let date): return "Synced \(CloudDates.label(for: date).lowercased())"
         case .failed(let message): return "Sync failed · \(message)"
@@ -84,7 +84,7 @@ final class CloudSync: ObservableObject {
         challenges = []
         feed = []
         announcements = []
-        events = ClubEvent.fallback
+        events = []
         stats = CloudProfileStats()
     }
 
@@ -108,7 +108,7 @@ final class CloudSync: ObservableObject {
             feed = try await feedRows
             announcements = try await announcementRows
             challenges = try await challengeRows.sorted { ($0.joined ?? false) && !($1.joined ?? false) }
-            if let rows = try? await eventRows, !rows.isEmpty { events = rows }
+            events = (try? await eventRows) ?? []
             stats = CloudProfileStats(sessions: sessions)
             status = .synced(Date())
         } catch {
@@ -117,7 +117,7 @@ final class CloudSync: ObservableObject {
     }
 
     func upload(_ session: PracticeSession) async -> PracticeSession? {
-        guard let client, currentUserID != nil else { return nil }
+        guard let client, currentUserID != nil, !session.isSimulated else { return nil }
         do {
             let rows: [SessionRow] = try await client.insert("sessions", SessionRow(session))
             guard let saved = rows.first?.practiceSession else { return nil }

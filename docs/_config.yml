@@ -1,0 +1,10 @@
+title: fairLie
+description: Golf practice feedback from the GolfMat, optional radar, and clearly labeled simulated swings.
+theme: jekyll-theme-primer
+baseurl: "/turftrack-ios"
+url: "https://cloud-byte1.github.io"
+exclude:
+  - supabase
+  - brand
+  - APP_STORE_LAUNCH.md
+  - README.md

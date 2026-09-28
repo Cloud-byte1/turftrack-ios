@@ -235,13 +235,6 @@ struct ClubEvent: Codable, Identifiable, Equatable {
         case id, title, detail, place, attendees, rsvped
         case whenLabel = "when_label"
     }
-
-    static let fallback: [ClubEvent] = [
-        .init(id: "ev_tuesday", title: "Tuesday range night", detail: "Open bay with live mat + radar scoring.",
-              whenLabel: "Tue 6:00–8:00 PM", place: "Bay 3 · Strike Lab Range", attendees: 7, rsvped: true),
-        .init(id: "ev_sat", title: "Saturday smash factor clinic", detail: "Radar-only session focused on ball speed.",
-              whenLabel: "Sat 10:00 AM", place: "Bay 1", attendees: 4, rsvped: false),
-    ]
 }
 
 struct IDArg: Encodable {

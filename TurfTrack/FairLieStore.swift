@@ -18,7 +18,7 @@ final class FairLieStore: ObservableObject {
     @Published var activeSessionStarted = false
     @Published var sessionClub = "7 Iron"
     @Published var sessionSwings: [SwingResult] = []
-    @Published var sessions: [PracticeSession] = PracticeSession.samples
+    @Published private(set) var sessions: [PracticeSession] = []
     @Published var selectedSession: PracticeSession?
     @Published var armed = false
     @Published var isZeroed = false
@@ -37,14 +37,17 @@ final class FairLieStore: ObservableObject {
     let radar = RadarBLEManager()
     let cloud = CloudSync()
     private var cancellables = Set<AnyCancellable>()
+    /// "guest" or the Supabase user id; nil when signed out.
+    private var accountKey: String?
+    private var localSessions: [PracticeSession] = []
 
     var liveSession: PracticeSession? {
         guard activeSessionStarted, !sessionSwings.isEmpty else { return nil }
         return buildSessionSummary(sessionSwings, club: sessionClub)
     }
 
-    var profileInitials: String { "CM" }
-    var profileName: String { "Carmine" }
+    var isGuest: Bool { accountKey == "guest" }
+    var insights: PracticeInsights { PracticeInsights(sessions: sessions) }
 
     init() {
         ble.objectWillChange
@@ -56,12 +59,35 @@ final class FairLieStore: ObservableObject {
         cloud.objectWillChange
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
-        if cloud.isConfigured {
-            sessions = []
-            cloud.$sessions
-                .sink { [weak self] list in self?.sessions = list }
-                .store(in: &cancellables)
-        }
+        cloud.$sessions
+            .sink { [weak self] list in self?.mergeSessions(cloud: list) }
+            .store(in: &cancellables)
+        ble.$isReconnecting
+            .removeDuplicates()
+            .dropFirst()
+            .sink { [weak self] reconnecting in
+                guard let self else { return }
+                if reconnecting {
+                    self.armed = false
+                    self.isZeroed = false
+                    self.notice = "GolfMat connection dropped — reconnecting automatically…"
+                } else if self.ble.isConnected {
+                    self.notice = "GolfMat reconnected. Zero the sensors before your next swing."
+                }
+            }
+            .store(in: &cancellables)
+        radar.$isReconnecting
+            .removeDuplicates()
+            .dropFirst()
+            .sink { [weak self] reconnecting in
+                guard let self else { return }
+                if reconnecting {
+                    self.notice = "Radar connection dropped — reconnecting automatically…"
+                } else if self.radar.isConnected {
+                    self.notice = "Radar reconnected."
+                }
+            }
+            .store(in: &cancellables)
         ble.$lastPacket
             .compactMap { $0 }
             .sink { [weak self] packet in
@@ -86,35 +112,80 @@ final class FairLieStore: ObservableObject {
 
     func endSession() {
         guard activeSessionStarted else { return }
-        if !sessionSwings.isEmpty {
-            let completed = buildSessionSummary(sessionSwings, club: sessionClub, when: "Just now")
-            sessions.insert(completed, at: 0)
-            selectedSession = completed
-            if cloud.isConfigured {
-                Task {
-                    let saved = await cloud.upload(completed)
-                    notice = saved == nil ? "Session saved on this phone — cloud sync failed." : "Session saved to your Supabase history."
-                }
-            }
-        }
+        let completed = sessionSwings.isEmpty
+            ? nil
+            : buildSessionSummary(sessionSwings, club: sessionClub, when: Self.whenLabel())
         activeSessionStarted = false
         armed = false
         isZeroed = false
         sessionSwings = []
         tab = .progress
-        notice = "Session saved."
+        guard let completed else {
+            notice = "Session ended — no swings to save."
+            return
+        }
+        selectedSession = completed
+
+        if !isGuest, cloud.currentUserID != nil, !completed.isSimulated {
+            notice = "Saving session…"
+            Task {
+                if await cloud.upload(completed) != nil {
+                    notice = "Session saved to your account."
+                } else {
+                    saveLocally(completed)
+                    notice = "Couldn't reach the cloud — session saved on this iPhone."
+                }
+            }
+        } else {
+            saveLocally(completed)
+            notice = completed.isSimulated && !isGuest
+                ? "Simulated session saved on this iPhone only — it isn't uploaded or ranked."
+                : "Session saved on this iPhone."
+        }
     }
 
-    func refreshCloud() async {
-        await cloud.refresh()
-    }
-
-    func resetForSignOut() {
-        cloud.reset()
+    /// Loads the sessions that belong to the active account (guest, a signed-in golfer, or nobody).
+    func activate(account: String?) async {
+        accountKey = account
         selectedSession = nil
         sessionSwings = []
         activeSessionStarted = false
-        tab = .home
+        localSessions = account.map(LocalSessionStore.load) ?? []
+        if account == nil || account == "guest" {
+            cloud.reset()
+            mergeSessions(cloud: [])
+            if account == nil { tab = .home }
+        } else {
+            mergeSessions(cloud: cloud.sessions)
+            await cloud.refresh()
+        }
+    }
+
+    func refreshCloud() async {
+        guard !isGuest else { return }
+        await cloud.refresh()
+    }
+
+    func eraseLocalSessions() {
+        guard let accountKey else { return }
+        localSessions = []
+        LocalSessionStore.save([], for: accountKey)
+        mergeSessions(cloud: cloud.sessions)
+    }
+
+    private func saveLocally(_ session: PracticeSession) {
+        guard let accountKey else { return }
+        localSessions.insert(session, at: 0)
+        LocalSessionStore.save(localSessions, for: accountKey)
+        mergeSessions(cloud: cloud.sessions)
+    }
+
+    private func mergeSessions(cloud list: [PracticeSession]) {
+        sessions = localSessions + (isGuest ? [] : list)
+    }
+
+    private static func whenLabel(_ date: Date = Date()) -> String {
+        date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute())
     }
 
     func connectRadar() {
@@ -291,6 +362,28 @@ final class FairLieStore: ObservableObject {
             sessionSwings.append(next)
         }
         if !next.preview { armed = false; ble.armed = false }
+    }
+}
+
+/// Sessions kept on this iPhone: everything for guests, and simulated or unsynced sessions for accounts.
+enum LocalSessionStore {
+    private static func key(_ account: String) -> String { "fairlie.localSessions.\(account)" }
+
+    static func load(_ account: String) -> [PracticeSession] {
+        guard let data = UserDefaults.standard.data(forKey: key(account)) else { return [] }
+        return (try? JSONDecoder().decode([PracticeSession].self, from: data)) ?? []
+    }
+
+    static func save(_ sessions: [PracticeSession], for account: String) {
+        if sessions.isEmpty {
+            UserDefaults.standard.removeObject(forKey: key(account))
+        } else if let data = try? JSONEncoder().encode(sessions) {
+            UserDefaults.standard.set(data, forKey: key(account))
+        }
+    }
+
+    static func erase(_ account: String) {
+        UserDefaults.standard.removeObject(forKey: key(account))
     }
 }
 

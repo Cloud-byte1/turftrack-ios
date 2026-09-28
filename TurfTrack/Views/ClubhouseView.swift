@@ -18,7 +18,6 @@ struct ClubhouseView: View {
     }
 
     @State private var section: Section = .overview
-    @State private var board = "clubhouse"
     @State private var draft = ""
     @State private var posting = false
 
@@ -26,21 +25,26 @@ struct ClubhouseView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 header
-                statStrip
-                sectionPicker
+                if auth.isGuest {
+                    GuestAccountPrompt(message: "The Clubhouse leaderboard, challenges, feed, and events need an account so your scores and posts belong to you.")
+                    personalOverview
+                } else {
+                    statStrip
+                    sectionPicker
 
-                switch section {
-                case .overview: overview
-                case .board: leaderboard
-                case .challenges: challengeList
-                case .feed: feedSection
-                case .events: eventList
+                    switch section {
+                    case .overview: overview
+                    case .board: leaderboard
+                    case .challenges: challengeList
+                    case .feed: feedSection
+                    case .events: eventList
+                    }
+
+                    Text(store.cloud.statusLabel)
+                        .font(.caption2)
+                        .foregroundStyle(Theme.muted)
+                        .frame(maxWidth: .infinity)
                 }
-
-                Text(store.cloud.statusLabel)
-                    .font(.caption2)
-                    .foregroundStyle(Theme.muted)
-                    .frame(maxWidth: .infinity)
             }
             .padding(18)
         }
@@ -72,7 +76,7 @@ struct ClubhouseView: View {
                 Spacer()
                 VStack {
                     Text("XP").font(.caption2).foregroundStyle(Theme.muted)
-                    Text("\(auth.user.strikeXp % 500)").font(.headline).foregroundStyle(Theme.gold)
+                    Text("\(auth.user.xpIntoLevel)").font(.headline).foregroundStyle(Theme.gold)
                 }
                 .frame(width: 64, height: 64)
                 .background(Theme.paper, in: Circle())
@@ -82,11 +86,12 @@ struct ClubhouseView: View {
 
             GeometryReader { geo in
                 Capsule().fill(Color(white: 0.92)).overlay(alignment: .leading) {
-                    Capsule().fill(Theme.gold).frame(width: geo.size.width * CGFloat(auth.user.strikeXp % 500) / 500)
+                    Capsule().fill(Theme.gold).frame(width: geo.size.width * CGFloat(auth.user.xpIntoLevel) / 500)
                 }
             }
             .frame(height: 5)
-            Text("\(auth.user.strikeXp) Strike XP to Ball Striker").font(.caption).foregroundStyle(Theme.muted)
+            Text("\(500 - auth.user.xpIntoLevel) XP to level \(auth.user.levelNumber + 1) · 10 XP per saved swing")
+                .font(.caption).foregroundStyle(Theme.muted)
         }
     }
 
@@ -95,8 +100,8 @@ struct ClubhouseView: View {
             Text("STRIKE LAB CLUBHOUSE").eyebrowStyle()
             Text("Range rats chasing pure contact").font(.subheadline.weight(.semibold))
             HStack {
-                stripStat(store.cloud.members.isEmpty ? FairLieCatalog.friends.count + 1 : store.cloud.members.count, "members")
-                stripStat(store.cloud.challenges.isEmpty ? FairLieCatalog.challenges.count : store.cloud.challenges.count, "challenges")
+                stripStat(store.cloud.members.count, "members")
+                stripStat(store.cloud.challenges.count, "challenges")
                 stripStat(store.cloud.feed.count, "posts")
                 stripStat(store.cloud.events.count, "events")
             }
@@ -150,17 +155,31 @@ struct ClubhouseView: View {
                 }
             }
 
-            HStack {
-                Text("Up next").font(.headline)
-                Spacer()
-                Button("All events") { section = .events }
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(Theme.green)
-            }
-            ForEach(store.cloud.events.prefix(2)) { event in
-                eventCard(event)
+            if !store.cloud.events.isEmpty {
+                HStack {
+                    Text("Up next").font(.headline)
+                    Spacer()
+                    Button("All events") { section = .events }
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Theme.green)
+                }
+                ForEach(store.cloud.events.prefix(2)) { event in
+                    eventCard(event)
+                }
             }
 
+            personalOverview
+
+            VStack(spacing: 0) {
+                link("My profile", action: onOpenProfile)
+                link("Settings", action: onOpenSettings)
+            }
+        }
+    }
+
+    /// Bag, trophies, and devices — everything here comes from this golfer's own data.
+    private var personalOverview: some View {
+        VStack(alignment: .leading, spacing: 16) {
             Text("My Bag").font(.headline)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 70))], spacing: 8) {
                 ForEach(auth.user.bag, id: \.self) { club in
@@ -176,7 +195,7 @@ struct ClubhouseView: View {
 
             Text("Trophy Case").font(.headline)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                ForEach(FairLieCatalog.badges) { badge in
+                ForEach(FairLieCatalog.badges(for: store.sessions)) { badge in
                     VStack(spacing: 6) {
                         Text(badge.earned ? "🏆" : "🔒")
                         Text(badge.title).font(.caption2.weight(.semibold)).multilineTextAlignment(.center)
@@ -192,42 +211,16 @@ struct ClubhouseView: View {
                 }
             }
 
-            Text("Friends").font(.headline)
-            VStack(spacing: 0) {
-                ForEach(FairLieCatalog.friends) { friend in
-                    HStack {
-                        Circle().fill(Color(white: 0.92)).frame(width: 40, height: 40)
-                            .overlay(Text(String(friend.name.prefix(1))).font(.headline))
-                        VStack(alignment: .leading) {
-                            Text(friend.name).font(.subheadline.weight(.semibold))
-                            Text("\(friend.username) · \(friend.city)").font(.caption).foregroundStyle(Theme.muted)
-                        }
-                        Spacer()
-                        Text("\(friend.strikeScore)").font(.headline).foregroundStyle(Theme.greenDark)
-                    }
-                    .padding(.vertical, 10)
-                    Divider()
-                }
-            }
-            .padding(.horizontal, 12)
-            .fairCard()
-
-            Text("Device").font(.headline)
+            Text("Devices").font(.headline)
             VStack(alignment: .leading, spacing: 8) {
-                deviceRow("fairLie Smart Mat", connected: store.ble.isConnected)
+                deviceRow("GolfMat", connected: store.ble.isConnected)
                 deviceRow("Radar sensor", connected: store.radar.isConnected)
-                Text("Firmware 1.2.0 · Last calibrated recently").font(.caption).foregroundStyle(Theme.muted)
-                Button("Recalibrate") { store.zeroMat() }
+                Button("Open Practice to connect") { store.tab = .practice }
                     .font(.caption.weight(.bold))
                     .foregroundStyle(Theme.greenDark)
             }
             .padding(16)
             .fairCard()
-
-            VStack(spacing: 0) {
-                link("My profile", action: onOpenProfile)
-                link("Settings & levels", action: onOpenSettings)
-            }
         }
     }
 
@@ -245,24 +238,19 @@ struct ClubhouseView: View {
 
     private var leaderboard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 6) {
-                scope("Clubhouse", id: "clubhouse")
-                scope("Friends", id: "friends")
-            }
-            if board == "clubhouse", !store.cloud.members.isEmpty {
-                cloudLeaderboard
+            if store.cloud.members.isEmpty {
+                Text("No golfers ranked yet. Save a GolfMat session to put your score on the board.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.muted)
             } else {
-                catalogLeaderboard
+                cloudLeaderboard
             }
-            Text("Ranked by verified smart-mat sessions and skill bracket, not raw shot volume.")
+            Text("Ranked by average strike score across saved GolfMat sessions. Simulated swings are never uploaded.")
                 .font(.caption2)
                 .foregroundStyle(Theme.muted)
 
-            Text("Groups").font(.headline)
-            group("Weekend Foursome", "4 members · Club champion board")
-            group("Range Regulars", "12 members · Weekly consistency challenge")
-            ShareLink(item: AppConfig.marketingURL, message: Text("Join my foursome on \(AppConfig.appName)")) {
-                Text("Invite your foursome")
+            ShareLink(item: AppConfig.marketingURL, message: Text("Practice with me on \(AppConfig.appName)")) {
+                Text("Invite a friend")
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
@@ -288,25 +276,6 @@ struct ClubhouseView: View {
                     }
                     Spacer()
                     Text("\(member.score ?? 0)").font(.headline)
-                }
-                .padding(.vertical, 4)
-                .accessibilityElement(children: .combine)
-            }
-        }
-        .padding(14)
-        .fairCard()
-    }
-
-    private var catalogLeaderboard: some View {
-        VStack(spacing: 8) {
-            ForEach(Array(FairLieCatalog.leaderboard(scope: board, selfName: auth.user.name).enumerated()), id: \.element.id) { index, entry in
-                HStack {
-                    Text("\(index + 1)").font(.caption.weight(.bold)).frame(width: 18)
-                    Text(entry.name).font(.subheadline.weight(.semibold))
-                    if entry.isSelf { youTag }
-                    Spacer()
-                    Text(entry.verified ? "verified" : "manual").font(.caption2).foregroundStyle(Theme.muted)
-                    Text("\(entry.score)").font(.headline)
                 }
                 .padding(.vertical, 4)
                 .accessibilityElement(children: .combine)
@@ -428,6 +397,9 @@ struct ClubhouseView: View {
     private var eventList: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Range calendar").font(.headline)
+            if store.cloud.events.isEmpty {
+                Text("No events scheduled yet.").font(.caption).foregroundStyle(Theme.muted)
+            }
             ForEach(store.cloud.events) { event in
                 eventCard(event)
             }
@@ -463,26 +435,6 @@ struct ClubhouseView: View {
     }
 
     // MARK: - Shared
-
-    private func scope(_ title: String, id: String) -> some View {
-        Button(title) { board = id }
-            .font(.caption.weight(.bold))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(board == id ? mint : Theme.paper, in: Capsule())
-            .foregroundStyle(board == id ? Theme.green : Theme.muted)
-            .overlay(Capsule().stroke(board == id ? Theme.green : Color(white: 0.9)))
-    }
-
-    private func group(_ title: String, _ subtitle: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.subheadline.weight(.bold))
-            Text(subtitle).font(.caption).foregroundStyle(Theme.muted)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .fairCard()
-    }
 
     private func link(_ title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
@@ -546,59 +498,42 @@ struct ClubChallengeRow: View {
 
 struct ChallengesView: View {
     @EnvironmentObject private var store: FairLieStore
+    @EnvironmentObject private var auth: AuthStore
 
     var body: some View {
-        let active = FairLieCatalog.challenges.filter { $0.status == "active" }
-        let upcoming = FairLieCatalog.challenges.filter { $0.status == "upcoming" }
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Challenges").font(.system(size: 28, weight: .bold))
                 Text("Compete on skill, not just volume.").foregroundStyle(Theme.muted)
 
-                if let first = active.first {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("YOUR TURN").font(.caption.weight(.bold)).foregroundStyle(Theme.gold)
-                        Text(first.title).font(.headline)
-                        Text("\(first.progress)/\(first.total) shots remaining").font(.caption).foregroundStyle(Theme.muted)
+                if auth.isGuest {
+                    GuestAccountPrompt(message: "Clubhouse challenges track your progress against other golfers, so they need an account.")
+                } else {
+                    if let next = store.cloud.challenges.first(where: { $0.joined == true && !$0.isComplete }) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("YOUR TURN").font(.caption.weight(.bold)).foregroundStyle(Theme.gold)
+                            Text(next.title).font(.headline)
+                            Text("\(max(0, (next.target ?? 1) - (next.progress ?? 0))) to go").font(.caption).foregroundStyle(Theme.muted)
+                        }
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Theme.gold.opacity(0.12), in: RoundedRectangle(cornerRadius: 18))
+                        .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.gold.opacity(0.35)))
                     }
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Theme.gold.opacity(0.12), in: RoundedRectangle(cornerRadius: 18))
-                    .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.gold.opacity(0.35)))
-                }
 
-                if !store.cloud.challenges.isEmpty {
-                    Text("Clubhouse challenges").font(.headline)
+                    if store.cloud.challenges.isEmpty {
+                        Text("No Clubhouse challenges right now. Pull down to refresh.")
+                            .font(.caption)
+                            .foregroundStyle(Theme.muted)
+                    }
                     ForEach(store.cloud.challenges) { challenge in
                         ClubChallengeRow(challenge: challenge)
                     }
                 }
 
-                Text("Active").font(.headline)
-                ForEach(active) { challenge in
-                    challengeRow(challenge)
-                }
-                if !upcoming.isEmpty {
-                    Text("Upcoming").font(.headline)
-                    ForEach(upcoming) { challenge in
-                        challengeRow(challenge)
-                    }
-                }
-
-                Text("Challenge types").font(.headline)
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                    ForEach(FairLieCatalog.challengeTypes, id: \.self) { type in
-                        Text(type)
-                            .font(.caption.weight(.bold))
-                            .padding(.vertical, 12)
-                            .frame(maxWidth: .infinity)
-                            .background(Theme.paper, in: RoundedRectangle(cornerRadius: 12))
-                    }
-                }
-
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Fair play").font(.headline)
-                    Text("Ranked boards use verified mat sessions only. Skill brackets keep competition fair.")
+                    Text("The leaderboard ranks average strike score from saved GolfMat sessions. Simulated swings never count.")
                         .font(.caption).foregroundStyle(Theme.muted)
                 }
                 .padding(16)
@@ -609,25 +544,29 @@ struct ChallengesView: View {
         .background(Theme.cream)
         .refreshable { await store.refreshCloud() }
     }
+}
 
-    private func challengeRow(_ challenge: FairLieChallenge) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(challenge.title).font(.subheadline.weight(.bold))
-                Spacer()
-                Text(challenge.type).font(.caption2.weight(.bold)).foregroundStyle(Theme.green)
-            }
-            ProgressView(value: Double(challenge.progress), total: Double(challenge.total)).tint(Theme.green)
-            HStack {
-                Text("\(challenge.progress)/\(challenge.total)").font(.caption).foregroundStyle(Theme.muted)
-                Spacer()
-                Text("\(challenge.participants) golfers").font(.caption).foregroundStyle(Theme.muted)
-            }
-            if let stake = challenge.stake {
-                Text(stake).font(.caption2).foregroundStyle(Theme.gold)
-            }
+/// Shown in place of account-only features while using guest mode.
+struct GuestAccountPrompt: View {
+    @EnvironmentObject private var auth: AuthStore
+    let message: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("GUEST MODE").eyebrowStyle()
+            Text("Create a free account to join in").font(.headline)
+            Text(message).font(.caption).foregroundStyle(Theme.muted)
+            Text("Your guest sessions stay on this iPhone.").font(.caption2).foregroundStyle(Theme.muted)
+            Button("Create account or sign in") { auth.leaveGuest() }
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Theme.green, in: Capsule())
         }
-        .padding(14)
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .fairCard()
     }
 }
+

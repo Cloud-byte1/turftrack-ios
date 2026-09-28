@@ -11,6 +11,11 @@ struct SessionsView: View {
                 if let session = store.selectedSession {
                     sessionDetail(session)
                 }
+                if store.sessions.isEmpty {
+                    Text("No saved sessions yet. Start a session in Practice with GolfMat or the swing simulator.")
+                        .font(.caption)
+                        .foregroundStyle(Theme.muted)
+                }
                 ForEach(store.sessions) { session in
                     Button {
                         store.selectedSession = session
@@ -24,11 +29,14 @@ struct SessionsView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("\(session.club) practice").font(.subheadline.weight(.bold)).foregroundStyle(Theme.ink)
                                 Text("\(session.when) · \(session.swings) swings").font(.caption).foregroundStyle(Theme.muted)
+                                if session.isSimulated {
+                                    Text("SIMULATED · ON THIS IPHONE").font(.system(size: 9, weight: .heavy)).foregroundStyle(Theme.gold)
+                                }
                             }
                             Spacer()
                             VStack(alignment: .trailing) {
                                 Text(session.distance).font(.subheadline.weight(.bold)).foregroundStyle(Theme.ink)
-                                Text("best carry").font(.caption2).foregroundStyle(Theme.muted)
+                                Text("est. best carry").font(.caption2).foregroundStyle(Theme.muted)
                             }
                             Text("\(session.score)")
                                 .font(.headline)
@@ -62,23 +70,27 @@ struct SessionsView: View {
             }
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 stat("\(session.score)", "avg score")
-                stat(session.distance, "best carry")
-                stat(session.avgBallMph.map(String.init) ?? "—", "avg ball")
-                stat(session.bestBallMph.map(String.init) ?? "—", "best ball")
-                stat(session.avgClubMph.map(String.init) ?? "—", "avg club")
-                stat(session.avgSmash.map { String(format: "%.2f", $0) } ?? "—", "smash")
-                stat("\(session.radarHitPct)%", "radar hits")
-                stat(session.avgAttackDeg.map { String(format: "%.1f°", $0) } ?? "—", "attack")
+                stat(session.distance, "est. best carry")
+                stat(session.avgBallMph.map(String.init) ?? "—", session.radarHitPct == 100 ? "avg ball" : "avg ball*")
+                stat(session.bestBallMph.map(String.init) ?? "—", session.radarHitPct == 100 ? "best ball" : "best ball*")
+                stat(session.avgClubMph.map(String.init) ?? "—", "est. avg club")
+                stat("\(session.radarHitPct)%", "radar-measured")
+                stat(session.avgAttackDeg.map { String(format: "%.1f°", $0) } ?? "—", "est. attack")
                 stat("\(session.centeredPct)%", "centered")
             }
+            Text(session.radarHitPct == 100
+                 ? "Ball speed measured by radar on every swing. Carry, club speed, and attack angle are estimates."
+                 : "* Includes estimated ball speed on swings without a radar reading. Carry, club speed, and attack angle are estimates.")
+                .font(.caption2)
+                .foregroundStyle(Theme.muted)
             if !session.swingSnapshots.isEmpty {
                 Text("RECENT STRIKES").eyebrowStyle()
                 ForEach(session.swingSnapshots) { item in
                     HStack {
                         Text("#\(item.n)").font(.caption.weight(.bold))
                         Text("\(item.score) pts")
-                        Text("\(item.carryYds) yds")
-                        Text("\(item.ballMph) mph")
+                        Text("~\(item.carryYds) yds")
+                        Text("\(item.ballMph) mph\(item.radar ? "" : " est.")")
                         Spacer()
                         Text(item.radar ? "radar" : "no radar").foregroundStyle(Theme.muted)
                     }
@@ -112,7 +124,7 @@ struct ProgressViewTab: View {
                 Text("Your strike trend").font(.system(size: 28, weight: .bold))
                 HStack(spacing: 10) {
                     progressCard("\(avg)", "avg score")
-                    progressCard("\(best)", "best yds")
+                    progressCard("\(best)", "est. best yds")
                     progressCard("\(store.sessions.count)", "sessions")
                 }
                 VStack(alignment: .leading, spacing: 10) {

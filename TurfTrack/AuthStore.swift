@@ -22,7 +22,9 @@ struct AuthAccount: Identifiable, Equatable {
 @MainActor
 final class AuthStore: ObservableObject {
     @Published private(set) var session: AuthAccount?
-    @Published var user: FairLieUser = .sample
+    @Published var user: FairLieUser = .guest
+    /// Using the app without an account: sessions and profile stay on this iPhone.
+    @Published private(set) var isGuest = UserDefaults.standard.bool(forKey: AuthStore.guestKey)
     @Published var errorMessage: String?
     @Published var infoMessage: String?
     @Published private(set) var isWorking = false
@@ -34,9 +36,51 @@ final class AuthStore: ObservableObject {
 
     var isSignedIn: Bool { session != nil }
     var needsProfileSetup: Bool { session?.needsSetup == true }
+    /// "guest", the signed-in user id, or nil.
+    var accountKey: String? { session?.id ?? (isGuest ? "guest" : nil) }
+
+    private static let guestKey = "fairlie.guestMode"
+    private static let guestProfileKey = "fairlie.guestProfile"
 
     init() {
+        if isGuest { user = Self.loadGuestProfile() }
         Task { await restore() }
+    }
+
+    // MARK: - Guest
+
+    func continueAsGuest() {
+        errorMessage = nil
+        infoMessage = nil
+        user = Self.loadGuestProfile()
+        isGuest = true
+        UserDefaults.standard.set(true, forKey: Self.guestKey)
+    }
+
+    /// Leaves guest mode to show sign-in. Guest sessions stay on the phone for next time.
+    func leaveGuest() {
+        isGuest = false
+        UserDefaults.standard.set(false, forKey: Self.guestKey)
+        user = .guest
+    }
+
+    func eraseGuestData() {
+        UserDefaults.standard.removeObject(forKey: Self.guestProfileKey)
+        LocalSessionStore.erase("guest")
+        user = .guest
+    }
+
+    private static func loadGuestProfile() -> FairLieUser {
+        guard let data = UserDefaults.standard.data(forKey: guestProfileKey),
+              let saved = try? JSONDecoder().decode(FairLieUser.self, from: data)
+        else { return .guest }
+        return saved
+    }
+
+    private func saveGuestProfile() {
+        if let data = try? JSONEncoder().encode(user) {
+            UserDefaults.standard.set(data, forKey: Self.guestProfileKey)
+        }
     }
 
     // MARK: - Email
@@ -144,6 +188,14 @@ final class AuthStore: ObservableObject {
 
     func updateProfile(name: String, city: String, bio: String, handicap: Double) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if isGuest {
+            if !trimmed.isEmpty { user.name = String(trimmed.prefix(60)) }
+            user.city = String(city.prefix(80))
+            user.bio = String(bio.prefix(280))
+            user.handicap = handicap
+            saveGuestProfile()
+            return
+        }
         run { _ in
             try await self.patchProfile(ProfileRow(
                 displayName: trimmed.isEmpty ? nil : trimmed,
@@ -157,7 +209,7 @@ final class AuthStore: ObservableObject {
 
     /// Fills the stats Home and Clubhouse show from the golfer's saved sessions.
     func apply(stats: CloudProfileStats) {
-        guard session != nil else { return }
+        guard session != nil || isGuest else { return }
         user.sessions = stats.totalSessions
         user.strikeScore = stats.avgScore ?? 0
         user.bestClubScore = stats.bestScore ?? 0
@@ -181,6 +233,7 @@ final class AuthStore: ObservableObject {
         defer { isWorking = false }
         do {
             try await SupabaseREST(config: config).rpcVoid("delete_my_account")
+            if let id = session?.id { LocalSessionStore.erase(id) }
             clearLocal()
             for key in Self.userScopedKeys {
                 UserDefaults.standard.removeObject(forKey: key)
@@ -203,6 +256,20 @@ final class AuthStore: ObservableObject {
     ]
 
     func exportAccountData() -> String {
+        if isGuest {
+            return [
+                "\(AppConfig.appName) guest export",
+                "Generated: \(ISO8601DateFormatter().string(from: Date()))",
+                "",
+                "Name: \(user.name)",
+                "City: \(user.city.isEmpty ? "—" : user.city)",
+                "Handicap: \(String(format: "%.1f", user.handicap))",
+                "Bio: \(user.bio.isEmpty ? "—" : user.bio)",
+                "Saved sessions: \(user.sessions)",
+                "",
+                "Guest mode: your profile and sessions are stored only on this iPhone and never uploaded.",
+            ].joined(separator: "\n")
+        }
         guard let account = session else { return "No account is signed in." }
         let lines = [
             "\(AppConfig.appName) account export",
@@ -252,6 +319,10 @@ final class AuthStore: ObservableObject {
 
     private func start(_ tokens: AuthTokens) async throws {
         AuthTokenStore.shared.set(tokens)
+        if isGuest {
+            isGuest = false
+            UserDefaults.standard.set(false, forKey: Self.guestKey)
+        }
         guard let config else { return }
         let client = SupabaseREST(config: config)
         let filter = [URLQueryItem(name: "user_id", value: "eq.\(tokens.userID)")]
@@ -310,7 +381,7 @@ final class AuthStore: ObservableObject {
         AuthTokenStore.shared.set(nil)
         session = nil
         profile = nil
-        user = .sample
+        user = .guest
         errorMessage = nil
         infoMessage = nil
     }

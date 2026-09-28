@@ -7,10 +7,11 @@ enum AppConfig {
     static let subtitle = "Golf strike & swing training"
     static let bundleIdentifier = "com.fairlie.turftrack"
 
-    static let supportURL = URL(string: "https://fairlie.app/support")!
-    static let marketingURL = URL(string: "https://fairlie.app")!
-    static let privacyPolicyURL = URL(string: "https://fairlie.app/privacy")!
-    static let termsOfUseURL = URL(string: "https://fairlie.app/terms")!
+    /// Served by GitHub Pages from `docs/` on the `main` branch of Cloud-byte1/turftrack-ios.
+    static let supportURL = URL(string: "https://cloud-byte1.github.io/turftrack-ios/support/")!
+    static let marketingURL = URL(string: "https://cloud-byte1.github.io/turftrack-ios/")!
+    static let privacyPolicyURL = URL(string: "https://cloud-byte1.github.io/turftrack-ios/privacy/")!
+    static let termsOfUseURL = URL(string: "https://cloud-byte1.github.io/turftrack-ios/terms/")!
 
     /// Apple's standard EULA link, used when no custom terms are supplied.
     static let appleStandardEULAURL = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!

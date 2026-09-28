@@ -128,6 +128,18 @@ struct LoginView: View {
             .frame(height: 48)
             .clipShape(Capsule())
 
+            Button("Continue without an account") { auth.continueAsGuest() }
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(Theme.greenDark)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .overlay(Capsule().stroke(Theme.green.opacity(0.4)))
+                .disabled(auth.isWorking)
+            Text("Practice with GolfMat or the swing simulator. Guest sessions stay on this iPhone; the Clubhouse needs an account.")
+                .font(.caption2)
+                .foregroundStyle(Theme.muted)
+                .multilineTextAlignment(.center)
+
             legalFooter
         }
     }
@@ -171,7 +183,7 @@ struct LoginView: View {
 
 struct ProfileSetupView: View {
     @EnvironmentObject private var auth: AuthStore
-    @State private var city = "Miami, FL"
+    @State private var city = ""
     @State private var handicap = 18.0
     @State private var skill = "Beginner"
     @State private var bag: Set<String> = ["Driver", "7 Iron", "Pitching Wedge"]
@@ -256,7 +268,7 @@ struct ProfileSetupView: View {
         }
         .background(Theme.cream.ignoresSafeArea())
         .onAppear {
-            city = auth.session?.city.isEmpty == false ? auth.session!.city : city
+            if let saved = auth.session?.city, !saved.isEmpty { city = saved }
         }
     }
 }

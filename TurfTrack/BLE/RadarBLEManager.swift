@@ -39,13 +39,17 @@ final class RadarBLEManager: NSObject, ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published private(set) var latest: RadarSample?
     @Published private(set) var lastValid: RadarSample?
+    /// The link dropped (or Bluetooth turned off) and a pending reconnect is waiting for the radar.
+    @Published private(set) var isReconnecting = false
 
     private var central: CBCentralManager!
     private var peripheral: CBPeripheral?
+    private let memory = BLEDeviceMemory(prefix: "fairlie.ble.radar")
 
     var isConnected: Bool { connectionState == .connected }
 
     var statusTitle: String {
+        if isReconnecting && !isConnected { return "Reconnecting radar…" }
         switch connectionState {
         case .disconnected: return "Radar offline"
         case .scanning: return "Scanning for radar…"
@@ -56,6 +60,9 @@ final class RadarBLEManager: NSObject, ObservableObject {
     }
 
     var statusDetail: String {
+        if isReconnecting && !isConnected {
+            return "The radar will reconnect automatically when it's powered on and in range. Tap Disconnect to stop."
+        }
         if let errorMessage { return errorMessage }
         switch connectionState {
         case .disconnected: return "Tap Radar BLE to link the XM125 ESP32."
@@ -82,11 +89,38 @@ final class RadarBLEManager: NSObject, ObservableObject {
             errorMessage = "Turn on Bluetooth, then connect the radar."
             return
         }
+        startScan()
+    }
+
+    private func startScan() {
         connectionState = .scanning
         central.scanForPeripherals(withServices: [Self.serviceUUID], options: nil)
     }
 
+    /// Resumes the last radar after launch or when Bluetooth comes back on, unless the user disconnected.
+    private func resumeIfNeeded() {
+        guard memory.autoReconnect, central.state == .poweredOn,
+              connectionState != .connected, connectionState != .connecting, connectionState != .scanning
+        else { return }
+        isReconnecting = true
+        errorMessage = nil
+        if let known = peripheral ?? memory.retrieve(from: central) {
+            reconnect(known)
+        } else {
+            startScan()
+        }
+    }
+
+    private func reconnect(_ target: CBPeripheral) {
+        peripheral = target
+        target.delegate = self
+        connectionState = .connecting
+        central.connect(target, options: nil)
+    }
+
     func disconnect() {
+        memory.autoReconnect = false
+        isReconnecting = false
         if let peripheral {
             central.cancelPeripheralConnection(peripheral)
         }
@@ -117,7 +151,8 @@ extension RadarBLEManager: CBCentralManagerDelegate {
     nonisolated func centralManagerDidUpdateState(_ central: CBCentralManager) {
         Task { @MainActor in
             switch central.state {
-            case .poweredOn: break
+            case .poweredOn:
+                self.resumeIfNeeded()
             case .unauthorized:
                 self.connectionState = .disconnected
                 self.errorMessage = "Allow Bluetooth for fairLie in Settings."
@@ -125,6 +160,9 @@ extension RadarBLEManager: CBCentralManagerDelegate {
                 self.connectionState = .unsupported
             default:
                 self.connectionState = .disconnected
+                self.latest = nil
+                self.lastValid = nil
+                if self.memory.autoReconnect { self.isReconnecting = true }
             }
         }
     }
@@ -149,24 +187,39 @@ extension RadarBLEManager: CBCentralManagerDelegate {
         Task { @MainActor in
             self.connectionState = .connected
             self.errorMessage = nil
+            self.memory.remember(peripheral)
+            self.isReconnecting = false
             peripheral.discoverServices([Self.serviceUUID])
         }
     }
 
     nonisolated func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         Task { @MainActor in
-            self.connectionState = .disconnected
-            self.errorMessage = error?.localizedDescription ?? "Radar connection failed."
-            self.peripheral = nil
+            guard self.memory.autoReconnect else {
+                self.connectionState = .disconnected
+                self.errorMessage = error?.localizedDescription ?? "Radar connection failed."
+                self.peripheral = nil
+                return
+            }
+            self.isReconnecting = true
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            guard self.memory.autoReconnect, !self.isConnected, central.state == .poweredOn else { return }
+            self.reconnect(peripheral)
         }
     }
 
     nonisolated func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         Task { @MainActor in
-            self.connectionState = .disconnected
-            self.peripheral = nil
             self.latest = nil
             self.lastValid = nil
+            if self.memory.autoReconnect, central.state == .poweredOn {
+                self.isReconnecting = true
+                self.errorMessage = nil
+                self.reconnect(peripheral)
+                return
+            }
+            self.connectionState = .disconnected
+            self.peripheral = nil
             if let error { self.errorMessage = error.localizedDescription }
         }
     }

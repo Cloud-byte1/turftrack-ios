@@ -34,7 +34,8 @@ struct HomeView: View {
                         LinearGradient(colors: [Theme.greenDeep, Color(red: 0.12, green: 0.32, blue: 0.22)], startPoint: .topLeading, endPoint: .bottomTrailing)
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Clubhouse").font(.title2.weight(.bold)).foregroundStyle(.white)
-                            Text("Friends · leaderboards · your golf crew").font(.caption).foregroundStyle(.white.opacity(0.8))
+                            Text(auth.isGuest ? "Create an account to join the leaderboard" : "Leaderboard · challenges · feed")
+                                .font(.caption).foregroundStyle(.white.opacity(0.8))
                             Text("Open Clubhouse →").font(.caption.weight(.bold)).foregroundStyle(Theme.gold)
                         }
                         .padding(18)
@@ -44,9 +45,9 @@ struct HomeView: View {
                 }
 
                 HStack {
-                    scoreChip("\(auth.user.strikeScore)", "Strike score")
-                    scoreChip("\(auth.user.centerStrikePct)%", "Center")
-                    scoreChip("\(auth.user.cleanContactPct)%", "Clean")
+                    scoreChip(store.sessions.isEmpty ? "—" : "\(auth.user.strikeScore)", "Strike score")
+                    scoreChip(insights.centeredPct.map { "\($0)%" } ?? "—", "Centered")
+                    scoreChip("\(store.sessions.count)", "Sessions")
                 }
 
                 Button(store.activeSessionStarted ? "End Session" : "Start Session") {
@@ -63,17 +64,22 @@ struct HomeView: View {
                 .padding(.vertical, 14)
                 .background(store.activeSessionStarted ? Theme.danger : Theme.green, in: Capsule())
 
-                puttingCard
-
                 Text("Quick reads").font(.headline)
-                insight("Fix this next: \(auth.user.fixThisNext.lowercased())", "Shows up most on your 7 iron", Theme.gold)
-                insight("Active: \(FairLieCatalog.challenges[0].title)", "\(FairLieCatalog.challenges[0].progress) of \(FairLieCatalog.challenges[0].total) shots", Theme.green)
-                insight("Best club: \(auth.user.bestClub)", "\(auth.user.bestClubScore) avg · trending up", Color.blue)
-
-                HStack(spacing: 10) {
-                    photo("Course prep", Theme.greenDeep)
-                    photo("Practice Lab", Theme.green)
-                    photo("Strike ref", Color(red: 0.15, green: 0.28, blue: 0.2))
+                if store.sessions.isEmpty {
+                    insight("Save your first session", "Connect GolfMat, or try the swing simulator in Practice. Your reads build from real sessions.", Theme.green)
+                } else {
+                    if let fix = insights.fixThisNext {
+                        insight("Fix this next: \(fix.lowercased())", "From your saved sessions", Theme.gold)
+                    }
+                    if let best = insights.bestClub {
+                        insight("Best club: \(best.club)", "\(best.score) average strike score", Color.blue)
+                    }
+                    if let consistency = insights.consistency {
+                        insight("Consistency \(consistency)", "How tightly your strike scores cluster", Theme.green)
+                    }
+                }
+                if let challenge = store.cloud.challenges.first(where: { $0.joined == true && !$0.isComplete }) {
+                    insight("Active: \(challenge.title)", "\(challenge.progress ?? 0) of \(challenge.target ?? 1)", Theme.green)
                 }
             }
             .padding(18)
@@ -99,26 +105,7 @@ struct HomeView: View {
         .fairCard()
     }
 
-    private var puttingCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("PUTTING SNAPSHOT").eyebrowStyle()
-            Text("\(auth.user.puttsMade)/\(auth.user.puttAttempts) made · \(auth.user.puttDistanceFt) ft")
-                .font(.headline)
-            Text("Line accuracy \(auth.user.lineAccuracy)% — tap Practice Lab to work it.")
-                .font(.caption)
-                .foregroundStyle(Theme.muted)
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color(white: 0.92))
-                    Capsule().fill(Theme.green).frame(width: geo.size.width * CGFloat(auth.user.lineAccuracy) / 100)
-                }
-            }
-            .frame(height: 8)
-        }
-        .padding(16)
-        .fairCard()
-        .onTapGesture { onOpenPractice() }
-    }
+    private var insights: PracticeInsights { store.insights }
 
     private func insight(_ title: String, _ subtitle: String, _ accent: Color) -> some View {
         HStack(spacing: 12) {
@@ -131,16 +118,5 @@ struct HomeView: View {
         }
         .padding(14)
         .fairCard()
-    }
-
-    private func photo(_ label: String, _ color: Color) -> some View {
-        Button(action: onOpenPractice) {
-            ZStack(alignment: .bottom) {
-                color
-                Text(label).font(.caption.weight(.bold)).foregroundStyle(.white).padding(8)
-            }
-            .frame(height: 88)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-        }
     }
 }

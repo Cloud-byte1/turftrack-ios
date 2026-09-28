@@ -53,11 +53,12 @@ struct LabView: View {
                 Circle()
                     .fill(Theme.profile)
                     .frame(width: 42, height: 42)
-                    .overlay(Text(store.profileInitials).font(.subheadline.weight(.bold)))
+                    .overlay(Text(auth.user.initials).font(.subheadline.weight(.bold)))
                     .overlay(Circle().stroke(.white, lineWidth: 3))
                 VStack(alignment: .leading, spacing: 1) {
                     Text(auth.user.name).font(.subheadline.weight(.semibold))
-                    Text("12 day streak").font(.caption2).foregroundStyle(Theme.muted)
+                    Text("\(store.sessions.count) saved session\(store.sessions.count == 1 ? "" : "s")")
+                        .font(.caption2).foregroundStyle(Theme.muted)
                 }
             }
         }
@@ -102,7 +103,7 @@ struct LabView: View {
             Spacer()
             sessionStat("\(store.sessionSwings.count)", "swings")
             sessionStat(live.map { "\($0.score)" } ?? "—", "avg")
-            sessionStat(live.map { "\($0.bestCarryYds)" } ?? "—", "best yds")
+            sessionStat(live.map { "\($0.bestCarryYds)" } ?? "—", "est. yds")
             Button("Finish & save") { store.endSession() }
                 .font(.caption.weight(.bold))
                 .foregroundStyle(Theme.greenDark)
@@ -131,13 +132,17 @@ struct LabView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("MAT ESP · FSR / SWING").eyebrowStyle()
                     Text(matTitle).font(.subheadline.weight(.bold))
-                    Text(store.ble.isConnected ? "Bluetooth mat linked" : "Connect GolfMat over BLE")
+                    Text(store.ble.isReconnecting && !store.ble.isConnected
+                         ? store.ble.statusDetail
+                         : store.ble.isConnected ? "Bluetooth mat linked" : "Connect GolfMat over BLE")
                         .font(.caption)
                         .foregroundStyle(Theme.muted)
                 }
                 Spacer()
                 FlowButtons {
-                    if !store.ble.isConnected {
+                    if store.ble.isReconnecting && !store.ble.isConnected {
+                        pill("Disconnect") { store.disconnectMat() }
+                    } else if !store.ble.isConnected {
                         pill("Mat BLE", enabled: store.ble.connectionState != .scanning) { store.connectMat() }
                     } else {
                         pill(store.calibrating ? "Zeroing…" : store.isZeroed ? "Re-zero" : "Zero sensors",
@@ -174,7 +179,7 @@ struct LabView: View {
                 }
                 Spacer()
                 FlowButtons {
-                    if store.radar.isConnected {
+                    if store.radar.isConnected || store.radar.isReconnecting {
                         pill("Disconnect") { store.disconnectRadar() }
                     } else {
                         pill("Radar BLE", enabled: store.radar.connectionState != .scanning) { store.connectRadar() }
@@ -189,6 +194,7 @@ struct LabView: View {
     }
 
     private var matTitle: String {
+        if store.ble.isReconnecting && !store.ble.isConnected { return "Reconnecting to GolfMat…" }
         if store.armed { return "Ready for one swing" }
         if !store.activeSessionStarted { return "Initialize a session" }
         if !store.ble.isConnected { return "Connect mat ESP" }
@@ -249,6 +255,9 @@ struct LabView: View {
                          : "Randomize for a fresh below-average strike, or nudge the sliders.")
                     .font(.caption)
                     .foregroundStyle(Theme.muted)
+                    Text("Simulated swings are made up for practice. Sessions that include them stay on this iPhone and never count on the leaderboard.")
+                        .font(.caption2)
+                        .foregroundStyle(Theme.muted)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 8) {
@@ -372,24 +381,32 @@ struct LabView: View {
                         Text("LAST STRIKE").font(.caption2.weight(.bold)).tracking(1.4).foregroundStyle(.white.opacity(0.6))
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Text("\(swing.carryYards)").font(.system(size: 64, weight: .heavy)).foregroundStyle(.white)
-                            Text("yds").font(.title3).foregroundStyle(.white.opacity(0.65))
+                            Text("yds est.").font(.title3).foregroundStyle(.white.opacity(0.65))
+                        }
+                        if swing.isSimulated && !swing.isZeroed {
+                            Text("SIMULATED").font(.caption2.weight(.heavy)).tracking(1.2).foregroundStyle(Theme.gold)
                         }
                         Text(score >= 85 ? "Pure contact." : score >= 60 ? "Solid strike." : swing.isZeroed ? "Waiting." : "Keep working.")
                             .font(.title3.weight(.bold)).foregroundStyle(.white)
-                        Text("\(swing.impactName) · \(swing.directionLabel) · \(Int(swing.ballSpeedMph.rounded())) mph ball")
+                        Text("\(swing.impactName) · \(swing.directionLabel) · \(Int(swing.ballSpeedMph.rounded())) mph ball\(swing.ballSpeedMeasured ? "" : " (est.)")")
                             .font(.caption).foregroundStyle(.white.opacity(0.62))
                     }
                     Spacer()
                     ShotGraphic().frame(width: 140, height: 120)
                 }
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 8) {
-                    metric("Club speed", "\(Int(swing.clubSpeedMph.rounded()))", "mph")
-                    metric("Ball speed", "\(Int(swing.ballSpeedMph.rounded()))", "mph")
-                    metric("Smash", swing.smash.map { String(format: "%.2f", $0) } ?? "—", "x")
-                    metric("Attack", String(format: "%.1f", swing.attackAngleDeg), "°")
+                    metric("Club speed est.", "\(Int(swing.clubSpeedMph.rounded()))", "mph")
+                    metric(swing.ballSpeedMeasured ? "Ball speed" : "Ball speed est.", "\(Int(swing.ballSpeedMph.rounded()))", "mph")
+                    metric("Contact", "\(swing.impactQuality)", "/100")
+                    metric("Attack est.", String(format: "%.1f", swing.attackAngleDeg), "°")
                     metric("Path", String(format: "%.1f", swing.swingPathDeg), "°")
                     metric("Radar", swing.radarValid ? "On" : "—", "")
                 }
+                Text(swing.ballSpeedMeasured
+                     ? "Ball speed measured by radar. Carry, club speed, and attack angle are estimates from the mat sensors."
+                     : "Carry, ball speed, club speed, and attack angle are estimates from the mat sensors. Link the radar to measure ball speed.")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.6))
             }
             .padding(24)
             .background(
@@ -416,11 +433,11 @@ struct LabView: View {
                 }
                 .frame(width: 140, height: 140)
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                    summary("\(swing.carryYards)", "carry yds")
-                    summary("\(Int(swing.ballSpeedMph.rounded()))", "ball mph")
-                    summary("\(Int(swing.clubSpeedMph.rounded()))", "club mph")
-                    summary(swing.smash.map { String(format: "%.2f", $0) } ?? "—", "smash")
-                    summary(String(format: "%.1f°", swing.attackAngleDeg), "attack")
+                    summary("\(swing.carryYards)", "est. carry yds")
+                    summary("\(Int(swing.ballSpeedMph.rounded()))", swing.ballSpeedMeasured ? "ball mph" : "est. ball mph")
+                    summary("\(Int(swing.clubSpeedMph.rounded()))", "est. club mph")
+                    summary("\(swing.impactQuality)", "contact")
+                    summary(String(format: "%.1f°", swing.attackAngleDeg), "est. attack")
                     summary(String(format: "%.1f°", swing.swingPathDeg), "path")
                     summary("\(swing.heelPressurePct)/\(swing.centerPressurePct)/\(swing.toePressurePct)", "H/C/T")
                     summary(swing.radarValid ? "\(Int(swing.ballSpeedMph.rounded()))" : "—", "radar mph")
@@ -588,8 +605,8 @@ struct LabView: View {
         if store.swing.isZeroed {
             return "Connect GolfMat over Bluetooth, or use the simulator to populate the lab."
         }
-        let smash = store.swing.smash.map { String(format: "%.2f", $0) } ?? "—"
-        return "Ball \(Int(store.swing.ballSpeedMph.rounded())) mph · club \(Int(store.swing.clubSpeedMph.rounded())) mph · smash \(smash) · attack \(String(format: "%.1f", store.swing.attackAngleDeg))° · path \(String(format: "%.1f", store.swing.swingPathDeg))°. Pressure \(store.swing.heelPressurePct)/\(store.swing.centerPressurePct)/\(store.swing.toePressurePct) heel/center/toe\(store.swing.radarValid ? " · radar locked" : "")."
+        let ballNote = store.swing.ballSpeedMeasured ? "" : " (est.)"
+        return "Ball \(Int(store.swing.ballSpeedMph.rounded())) mph\(ballNote) · club ~\(Int(store.swing.clubSpeedMph.rounded())) mph · attack ~\(String(format: "%.1f", store.swing.attackAngleDeg))° · path \(String(format: "%.1f", store.swing.swingPathDeg))°. Pressure \(store.swing.heelPressurePct)/\(store.swing.centerPressurePct)/\(store.swing.toePressurePct) heel/center/toe\(store.swing.radarValid ? " · radar locked" : "")."
     }
 }
 

@@ -34,11 +34,11 @@ struct SwingResult: Identifiable, Equatable {
     var pathPoints: [SIMD3Point]
 
     var clubSpeedKmh: Int { Int((clubSpeedMph * 1.60934).rounded()) }
+    /// Estimated from mat sensors; there is no launch monitor measuring carry.
     var carryYards: Int { Int((Double(estimatedDistanceM) * 1.09361).rounded()) }
-    var smash: Double? {
-        guard clubSpeedMph > 0, ballSpeedMph > 0 else { return nil }
-        return (ballSpeedMph / clubSpeedMph * 100).rounded() / 100
-    }
+    /// Ball speed is measured only when the radar reading was merged; otherwise it is derived.
+    var ballSpeedMeasured: Bool { radarValid }
+    var isSimulated: Bool { source != "ble" }
 
     var letterGrade: LetterGrade { LetterGrade.from(score: impactQuality) }
 

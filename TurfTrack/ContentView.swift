@@ -13,7 +13,7 @@ struct ContentView: View {
                     .tint(Theme.green)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Theme.cream.ignoresSafeArea())
-            } else if !auth.isSignedIn {
+            } else if !auth.isSignedIn && !auth.isGuest {
                 LoginView()
             } else if auth.needsProfileSetup {
                 ProfileSetupView()
@@ -21,8 +21,12 @@ struct ContentView: View {
                 mainApp
             }
         }
-        .onChange(of: auth.session?.id) { id in
-            if id == nil { store.resetForSignOut() }
+        .task(id: auth.isRestoring ? "restoring" : (auth.accountKey ?? "signed-out")) {
+            guard !auth.isRestoring else { return }
+            await store.activate(account: auth.accountKey)
+        }
+        .onChange(of: store.sessions) { sessions in
+            auth.apply(stats: CloudProfileStats(sessions: sessions))
         }
     }
 
@@ -54,8 +58,6 @@ struct ContentView: View {
 
             tabBar
         }
-        .task(id: auth.session?.id) { await store.refreshCloud() }
-        .onChange(of: store.cloud.stats) { stats in auth.apply(stats: stats) }
         .sheet(isPresented: $showProfile) {
             ProfileView(
                 onOpenSettings: {
@@ -70,6 +72,7 @@ struct ContentView: View {
         .sheet(isPresented: $showSettings) {
             SettingsView(onClose: { showSettings = false })
                 .environmentObject(auth)
+                .environmentObject(store)
         }
     }
 

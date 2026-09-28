@@ -28,19 +28,22 @@ struct ProfileView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(auth.user.name).font(.title3.weight(.bold))
                             Text(auth.user.username).font(.caption).foregroundStyle(Theme.muted)
-                            Text(auth.user.bio).font(.caption)
-                            Text("\(auth.user.city) · \(auth.user.level)").font(.caption).foregroundStyle(Theme.green)
+                            if !auth.user.bio.isEmpty {
+                                Text(auth.user.bio).font(.caption)
+                            }
+                            Text([auth.user.city, auth.user.level].filter { !$0.isEmpty }.joined(separator: " · "))
+                                .font(.caption).foregroundStyle(Theme.green)
                         }
                     }
 
                     HStack {
-                        stat("\(store.cloud.stats.totalSessions > 0 ? store.cloud.stats.totalSessions : auth.user.sessions)", "Sessions")
-                        stat("128", "Followers")
-                        stat("4", "Following")
+                        stat("\(store.sessions.count)", "Sessions")
+                        stat("\(stats.totalSwings)", "Swings")
+                        stat("\(auth.user.strikeXp)", "XP")
                     }
 
                     HStack {
-                        Text("A-\(auth.user.levelNumber)").font(.caption.weight(.bold))
+                        Text("Level \(auth.user.levelNumber)").font(.caption.weight(.bold))
                             .padding(.horizontal, 10).padding(.vertical, 6)
                             .background(Color(red: 0.91, green: 0.96, blue: 0.93), in: Capsule())
                         Text(String(format: "HCP %.1f", auth.user.handicap)).font(.caption.weight(.bold))
@@ -51,10 +54,12 @@ struct ProfileView: View {
                     HStack {
                         tabChip("Activity", "activity")
                         tabChip("Stats", "stats")
-                        tabChip("Clips", "clips")
                     }
 
                     if tab == "activity" {
+                        if store.sessions.isEmpty {
+                            Text("No saved sessions yet.").font(.caption).foregroundStyle(Theme.muted)
+                        }
                         ForEach(store.sessions.prefix(5)) { session in
                             HStack {
                                 VStack(alignment: .leading) {
@@ -67,33 +72,22 @@ struct ProfileView: View {
                             .padding(14)
                             .fairCard()
                         }
-                    } else if tab == "stats" {
-                        HStack {
-                            score("\(auth.user.strikeScore)", "Score")
-                            score("\(auth.user.centerStrikePct)%", "Center")
-                            score("\(auth.user.consistencyScore)", "Consistency")
-                        }
-                        if store.cloud.stats.totalSessions > 0 {
-                            let stats = store.cloud.stats
-                            Text("SAVED SESSIONS").eyebrowStyle()
-                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                                score("\(stats.totalSwings)", "Swings")
-                                score(stats.avgScore.map(String.init) ?? "—", "Avg score")
-                                score(stats.bestScore.map(String.init) ?? "—", "Best score")
-                                score(stats.bestCarryYds.map { "\($0)" } ?? "—", "Best yds")
-                                score(stats.avgBallMph.map(String.init) ?? "—", "Avg ball")
-                                score("\(stats.totalSessions)", "Sessions")
-                            }
-                        }
-                        Text(store.cloud.statusLabel).font(.caption2).foregroundStyle(Theme.muted)
                     } else {
+                        let insights = store.insights
+                        HStack {
+                            score(stats.avgScore.map(String.init) ?? "—", "Avg score")
+                            score(insights.centeredPct.map { "\($0)%" } ?? "—", "Centered")
+                            score(insights.consistency.map(String.init) ?? "—", "Consistency")
+                        }
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                            ForEach(0..<6, id: \.self) { index in
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(index % 2 == 0 ? Theme.greenDeep : Theme.green)
-                                    .frame(height: 90)
-                                    .overlay(Text("▶ \(8 + index)s").font(.caption.weight(.bold)).foregroundStyle(.white))
-                            }
+                            score(stats.bestScore.map(String.init) ?? "—", "Best score")
+                            score(stats.bestCarryYds.map { "\($0)" } ?? "—", "Est. best yds")
+                            score(stats.avgBallMph.map(String.init) ?? "—", "Avg ball*")
+                        }
+                        Text("* Ball speed is radar-measured when the radar was linked, otherwise estimated. Carry is always an estimate.")
+                            .font(.caption2).foregroundStyle(Theme.muted)
+                        if !auth.isGuest {
+                            Text(store.cloud.statusLabel).font(.caption2).foregroundStyle(Theme.muted)
                         }
                     }
                 }
@@ -102,6 +96,8 @@ struct ProfileView: View {
         }
         .background(Theme.cream.ignoresSafeArea())
     }
+
+    private var stats: CloudProfileStats { CloudProfileStats(sessions: store.sessions) }
 
     private func stat(_ value: String, _ label: String) -> some View {
         VStack {
@@ -134,15 +130,15 @@ struct ProfileView: View {
 
 struct SettingsView: View {
     @EnvironmentObject private var auth: AuthStore
+    @EnvironmentObject private var store: FairLieStore
     var onClose: () -> Void
     @State private var name = ""
     @State private var city = ""
     @State private var bio = ""
-    @State private var handicap = 12.4
-    @State private var outdoor = true
-    @State private var notifications = true
+    @State private var handicap = 0.0
     @State private var legalDocument: LegalDocument?
     @State private var showDeleteAccount = false
+    @State private var confirmEraseGuest = false
     @State private var exportedData = false
 
     var body: some View {
@@ -159,7 +155,6 @@ struct SettingsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     profileSection
-                    preferencesSection
                     privacySection
                     supportSection
                     accountSection
@@ -210,14 +205,6 @@ struct SettingsView: View {
         }
     }
 
-    private var preferencesSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Preferences").font(.headline)
-            toggle("Outdoor readability", "Higher contrast for range use", $outdoor)
-            toggle("Notifications", "Challenges, streaks, and session recaps", $notifications)
-        }
-    }
-
     private var privacySection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Privacy & data").font(.headline)
@@ -247,7 +234,61 @@ struct SettingsView: View {
         }
     }
 
+    @ViewBuilder
     private var accountSection: some View {
+        if auth.isGuest {
+            guestAccountSection
+        } else {
+            signedInAccountSection
+        }
+    }
+
+    private var guestAccountSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Account").font(.headline)
+            Text("You're using guest mode. Your profile and sessions are stored only on this iPhone and are never uploaded.")
+                .font(.caption)
+                .foregroundStyle(Theme.muted)
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fairCard()
+
+            Button("Create account or sign in") {
+                onClose()
+                auth.leaveGuest()
+            }
+            .font(.subheadline.weight(.bold))
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(Theme.green, in: Capsule())
+
+            Button("Erase guest data") { confirmEraseGuest = true }
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(Theme.danger)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .confirmationDialog("Erase your guest profile and all guest sessions from this iPhone?",
+                                    isPresented: $confirmEraseGuest, titleVisibility: .visible) {
+                    Button("Erase guest data", role: .destructive) {
+                        auth.eraseGuestData()
+                        store.eraseLocalSessions()
+                        onClose()
+                    }
+                }
+
+            versionFooter
+        }
+    }
+
+    private var versionFooter: some View {
+        Text("\(AppConfig.appName) · \(AppConfig.versionLabel)")
+            .font(.caption2)
+            .foregroundStyle(Theme.muted)
+            .frame(maxWidth: .infinity)
+    }
+
+    private var signedInAccountSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Account").font(.headline)
             VStack(alignment: .leading, spacing: 4) {
@@ -277,10 +318,7 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
 
-            Text("\(AppConfig.appName) · \(AppConfig.versionLabel)")
-                .font(.caption2)
-                .foregroundStyle(Theme.muted)
-                .frame(maxWidth: .infinity)
+            versionFooter
         }
     }
 

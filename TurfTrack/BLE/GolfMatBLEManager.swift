@@ -13,16 +13,20 @@ final class GolfMatBLEManager: NSObject, ObservableObject {
     @Published private(set) var connectionState: ConnectionState = .disconnected
     @Published private(set) var deviceName: String?
     @Published private(set) var errorMessage: String?
+    /// The link dropped (or Bluetooth turned off) and a pending reconnect is waiting for the mat.
+    @Published private(set) var isReconnecting = false
     @Published var armed = false
     @Published var lastPacket: SwingPacket?
 
     private var central: CBCentralManager!
     private var peripheral: CBPeripheral?
     private var swingCharacteristic: CBCharacteristic?
+    private let memory = BLEDeviceMemory(prefix: "fairlie.ble.mat")
 
     var isConnected: Bool { connectionState == .connected }
 
     var statusTitle: String {
+        if isReconnecting && !isConnected { return "Reconnecting…" }
         switch connectionState {
         case .disconnected: return "Offline"
         case .scanning: return "Scanning…"
@@ -33,6 +37,9 @@ final class GolfMatBLEManager: NSObject, ObservableObject {
     }
 
     var statusDetail: String {
+        if isReconnecting && !isConnected {
+            return "GolfMat will reconnect automatically when it's powered on and in range. Tap Disconnect to stop."
+        }
         if let errorMessage { return errorMessage }
         switch connectionState {
         case .disconnected:
@@ -62,6 +69,10 @@ final class GolfMatBLEManager: NSObject, ObservableObject {
             errorMessage = "Turn on Bluetooth, then Connect."
             return
         }
+        startScan()
+    }
+
+    private func startScan() {
         connectionState = .scanning
         central.scanForPeripherals(
             withServices: [Self.serviceUUID],
@@ -75,6 +86,8 @@ final class GolfMatBLEManager: NSObject, ObservableObject {
     }
 
     func disconnect() {
+        memory.autoReconnect = false
+        isReconnecting = false
         if let peripheral {
             central.cancelPeripheralConnection(peripheral)
         }
@@ -84,6 +97,28 @@ final class GolfMatBLEManager: NSObject, ObservableObject {
         armed = false
         connectionState = .disconnected
         deviceName = nil
+    }
+
+    /// Resumes the last mat after launch or when Bluetooth comes back on, unless the user disconnected.
+    private func resumeIfNeeded() {
+        guard memory.autoReconnect, central.state == .poweredOn,
+              connectionState != .connected, connectionState != .connecting, connectionState != .scanning
+        else { return }
+        isReconnecting = true
+        errorMessage = nil
+        if let known = peripheral ?? memory.retrieve(from: central) {
+            reconnect(known)
+        } else {
+            startScan()
+        }
+    }
+
+    private func reconnect(_ target: CBPeripheral) {
+        peripheral = target
+        deviceName = target.name ?? deviceName ?? Self.deviceName
+        target.delegate = self
+        connectionState = .connecting
+        central.connect(target, options: nil)
     }
 
     /// Zeros the UI and arms strike gating. Hardware tare still needs USB `CAL` on the ESP.
@@ -109,6 +144,31 @@ final class GolfMatBLEManager: NSObject, ObservableObject {
     }
 }
 
+/// Remembers the last peripheral per device and whether the user wants it reconnected.
+struct BLEDeviceMemory {
+    let prefix: String
+    private let defaults = UserDefaults.standard
+
+    init(prefix: String) { self.prefix = prefix }
+
+    var autoReconnect: Bool {
+        get { defaults.bool(forKey: "\(prefix).autoReconnect") }
+        nonmutating set { defaults.set(newValue, forKey: "\(prefix).autoReconnect") }
+    }
+
+    func remember(_ peripheral: CBPeripheral) {
+        defaults.set(peripheral.identifier.uuidString, forKey: "\(prefix).lastPeripheral")
+        autoReconnect = true
+    }
+
+    func retrieve(from central: CBCentralManager) -> CBPeripheral? {
+        guard let raw = defaults.string(forKey: "\(prefix).lastPeripheral"),
+              let id = UUID(uuidString: raw)
+        else { return nil }
+        return central.retrievePeripherals(withIdentifiers: [id]).first
+    }
+}
+
 extension GolfMatBLEManager {
     enum ConnectionState: Equatable {
         case disconnected
@@ -124,16 +184,17 @@ extension GolfMatBLEManager: CBCentralManagerDelegate {
         Task { @MainActor in
             switch central.state {
             case .poweredOn:
-                break
+                self.resumeIfNeeded()
             case .unauthorized:
                 self.connectionState = .disconnected
                 self.errorMessage = "Allow Bluetooth for fairLie in Settings."
             case .unsupported:
                 self.connectionState = .unsupported
             default:
-                if self.connectionState != .disconnected {
-                    self.connectionState = .disconnected
-                }
+                self.connectionState = .disconnected
+                self.armed = false
+                self.swingCharacteristic = nil
+                if self.memory.autoReconnect { self.isReconnecting = true }
             }
         }
     }
@@ -168,6 +229,8 @@ extension GolfMatBLEManager: CBCentralManagerDelegate {
         Task { @MainActor in
             self.connectionState = .connected
             self.errorMessage = nil
+            self.memory.remember(peripheral)
+            self.isReconnecting = false
             peripheral.discoverServices([Self.serviceUUID])
         }
     }
@@ -178,9 +241,16 @@ extension GolfMatBLEManager: CBCentralManagerDelegate {
         error: Error?
     ) {
         Task { @MainActor in
-            self.connectionState = .disconnected
-            self.errorMessage = error?.localizedDescription ?? "Connection failed."
-            self.peripheral = nil
+            guard self.memory.autoReconnect else {
+                self.connectionState = .disconnected
+                self.errorMessage = error?.localizedDescription ?? "Connection failed."
+                self.peripheral = nil
+                return
+            }
+            self.isReconnecting = true
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            guard self.memory.autoReconnect, !self.isConnected, central.state == .poweredOn else { return }
+            self.reconnect(peripheral)
         }
     }
 
@@ -190,9 +260,15 @@ extension GolfMatBLEManager: CBCentralManagerDelegate {
         error: Error?
     ) {
         Task { @MainActor in
-            self.connectionState = .disconnected
             self.armed = false
             self.swingCharacteristic = nil
+            if self.memory.autoReconnect, central.state == .poweredOn {
+                self.isReconnecting = true
+                self.errorMessage = nil
+                self.reconnect(peripheral)
+                return
+            }
+            self.connectionState = .disconnected
             self.peripheral = nil
             if let error {
                 self.errorMessage = error.localizedDescription
