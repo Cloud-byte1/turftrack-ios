@@ -88,40 +88,18 @@ create table if not exists clubhouse_announcements (
   created_at timestamptz not null default now()
 );
 
--- Seed clubhouse so the board is not empty
-insert into clubhouse_members (name, handle, initials, handicap, rank, score, swings, streak, is_you)
-select * from (values
-  ('Carmine', 'carmine', 'CM', 14.2, 1, 88, 142, 12, true),
-  ('Alex R', 'alexr', 'AR', 9.4, 2, 91, 210, 8, false),
-  ('Jordan K', 'jordank', 'JK', 18.1, 3, 76, 96, 3, false),
-  ('Sam Lee', 'samlee', 'SL', 11.0, 4, 84, 168, 5, false)
-) as v(name, handle, initials, handicap, rank, score, swings, streak, is_you)
-where not exists (select 1 from clubhouse_members limit 1);
-
+-- Starter challenges (progress is tracked per golfer after auth_migration.sql).
+-- No demo golfers, posts, or events are seeded: the Clubhouse shows real accounts only.
 insert into clubhouse_challenges (id, title, detail, progress, target, ends_at, joined, reward)
 values
-  ('ch_center', 'Center-face week', 'Land 12 centered strikes with a 7 iron before Sunday.', 5, 12, now() + interval '7 days', true, '+3 clubhouse points'),
-  ('ch_ballspeed', 'Honest ball speed', 'Post 8 radar-valid swings over 95 mph.', 2, 8, now() + interval '7 days', false, 'Radar badge')
+  ('ch_center', 'Center-face week', 'Land 12 centered strikes with a 7 iron.', 0, 12, null, false, '+3 clubhouse points'),
+  ('ch_ballspeed', 'Honest ball speed', 'Post 8 radar-measured swings over 95 mph.', 0, 8, null, false, 'Radar badge')
 on conflict (id) do nothing;
 
-insert into clubhouse_feed (author, text, when_label, likes)
-select * from (values
-  ('Alex R', 'Dialed a 7i to 148 with quieter path. Who’s next?', '2h ago', 4),
-  ('Strike Lab', 'Radar ESP bridge is live — connect mat + radar on separate COM ports.', 'Yesterday', 11)
-) as v(author, text, when_label, likes)
-where not exists (select 1 from clubhouse_feed limit 1);
-
 insert into clubhouse_announcements (title, body)
-select * from (values
-  ('Tuesday range night', 'Open bay 6–8pm. Bring the mat if you want live Strike Lab scoring.'),
-  ('Handicap sync', 'Update your profile handicap so the clubhouse board stays honest.')
-) as v(title, body)
+select 'Welcome to the Clubhouse',
+       'Save a GolfMat session to appear on the leaderboard. Scores come from real mat sessions only; simulated swings never count.'
 where not exists (select 1 from clubhouse_announcements limit 1);
-
-insert into profiles (display_name, handle, initials, home_club, handicap, preferred_clubs, bio, location, streak_days)
-select 'Carmine', 'carmine', 'CM', 'Strike Lab Range', 14.2, array['7 Iron','Driver','PW'],
-  'Working the mid-irons and getting radar ball speed honest.', 'Local range', 12
-where not exists (select 1 from profiles where handle = 'carmine');
 
 -- Dev-friendly policies (tighten once auth is on)
 alter table profiles enable row level security;

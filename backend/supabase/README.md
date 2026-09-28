@@ -25,6 +25,9 @@ I can’t create the account for you — you sign up, then we program against yo
    `delete_my_account()` removes a golfer and everything they own. Profiles are only
    readable when signed in, and `update_profile` is dropped, so the Express backend
    needs `SUPABASE_SERVICE_ROLE_KEY` to read or edit profiles after this step.
+6. Finally run [`strip_demo_data.sql`](./strip_demo_data.sql) on any project created before
+   the demo seeds were removed. It deletes the sample golfers, posts, events, and the
+   placeholder profile so the Clubhouse only shows real accounts.
 
 ## 3. Copy API keys
 

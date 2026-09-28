@@ -22,12 +22,6 @@ create table if not exists clubhouse_events (
   created_at timestamptz not null default now()
 );
 
-insert into clubhouse_events (id, title, detail, when_label, place, attendees, rsvped, created_at)
-values
-  ('ev_tuesday', 'Tuesday range night', 'Open bay with live mat + radar scoring.', 'Tue 6:00–8:00 PM', 'Bay 3 · Strike Lab Range', 7, true, now()),
-  ('ev_sat', 'Saturday smash factor clinic', 'Radar-only session focused on ball speed.', 'Sat 10:00 AM', 'Bay 1', 4, false, now() + interval '1 second')
-on conflict (id) do nothing;
-
 alter table clubhouse_events enable row level security;
 
 -- 2. Replace dev-open write policies ----------------------------------------
