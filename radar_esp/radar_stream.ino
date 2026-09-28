@@ -6,9 +6,15 @@
  * I2C: SDA=8 SCL=9 (change below if needed)
  * Flash with Arduino IDE, then Connect Radar USB in Strike Lab
  * (pick this board's COM port — not the mat ESP).
+ *
+ * The same line is also notified over BLE as "GolfMatRadar"
+ * (service 0xAB20, notify 0xAB21) for the fairLie iPhone app.
  */
 
 #include <Wire.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLE2902.h>
 
 static const uint8_t XM125_ADDR = 0x52;
 static const uint16_t REG_DETECTOR_STATUS = 0x0003;
@@ -35,6 +41,34 @@ static const uint32_t INTRA_MOTION_MIN = 1220;
 #endif
 
 static bool g_ready = false;
+static BLECharacteristic *g_radarChar = nullptr;
+static bool g_bleConnected = false;
+
+class RadarServerCallbacks : public BLEServerCallbacks {
+  void onConnect(BLEServer *) override { g_bleConnected = true; }
+  void onDisconnect(BLEServer *) override {
+    g_bleConnected = false;
+    BLEDevice::startAdvertising();
+  }
+};
+
+static void initBle() {
+  BLEDevice::init("GolfMatRadar");
+  // A full GMRADAR line is ~45 bytes; the default 23-byte MTU would truncate it.
+  BLEDevice::setMTU(185);
+  BLEServer *server = BLEDevice::createServer();
+  server->setCallbacks(new RadarServerCallbacks());
+  BLEService *service = server->createService(BLEUUID((uint16_t)0xAB20));
+  g_radarChar = service->createCharacteristic(
+      BLEUUID((uint16_t)0xAB21),
+      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
+  g_radarChar->addDescriptor(new BLE2902());
+  service->start();
+  BLEAdvertising *adv = BLEDevice::getAdvertising();
+  adv->addServiceUUID(BLEUUID((uint16_t)0xAB20));
+  adv->setScanResponse(true);
+  BLEDevice::startAdvertising();
+}
 
 static bool writeReg(uint16_t reg, uint32_t value) {
   Wire.beginTransmission(XM125_ADDR);
@@ -95,6 +129,7 @@ void setup() {
   delay(100);
 
   Serial.println("radar_bridge boot");
+  initBle();
   g_ready = initXm125();
   Serial.println(g_ready ? "XM125 ready" : "XM125 init failed");
 }
@@ -125,18 +160,15 @@ void loop() {
     }
   }
 
-  Serial.print("GMRADAR,");
-  Serial.print(millis());
-  Serial.print(',');
-  Serial.print(speedMph, 2);
-  Serial.print(',');
-  Serial.print(dist);
-  Serial.print(',');
-  Serial.print(intra);
-  Serial.print(',');
-  Serial.print(inter);
-  Serial.print(',');
-  Serial.println(valid);
+  char line[96];
+  snprintf(line, sizeof(line), "GMRADAR,%lu,%.2f,%lu,%lu,%lu,%d",
+           (unsigned long)millis(), speedMph, (unsigned long)dist,
+           (unsigned long)intra, (unsigned long)inter, valid);
+  Serial.println(line);
+  if (g_bleConnected && g_radarChar) {
+    g_radarChar->setValue((uint8_t *)line, strlen(line));
+    g_radarChar->notify();
+  }
 
   delay(100);
 }
