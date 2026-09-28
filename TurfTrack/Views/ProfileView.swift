@@ -34,7 +34,7 @@ struct ProfileView: View {
                     }
 
                     HStack {
-                        stat("\(auth.user.sessions)", "Sessions")
+                        stat("\(store.cloud.stats.totalSessions > 0 ? store.cloud.stats.totalSessions : auth.user.sessions)", "Sessions")
                         stat("128", "Followers")
                         stat("4", "Following")
                     }
@@ -73,6 +73,19 @@ struct ProfileView: View {
                             score("\(auth.user.centerStrikePct)%", "Center")
                             score("\(auth.user.consistencyScore)", "Consistency")
                         }
+                        if store.cloud.stats.totalSessions > 0 {
+                            let stats = store.cloud.stats
+                            Text("SAVED SESSIONS").eyebrowStyle()
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                                score("\(stats.totalSwings)", "Swings")
+                                score(stats.avgScore.map(String.init) ?? "—", "Avg score")
+                                score(stats.bestScore.map(String.init) ?? "—", "Best score")
+                                score(stats.bestCarryYds.map { "\($0)" } ?? "—", "Best yds")
+                                score(stats.avgBallMph.map(String.init) ?? "—", "Avg ball")
+                                score("\(stats.totalSessions)", "Sessions")
+                            }
+                        }
+                        Text(store.cloud.statusLabel).font(.caption2).foregroundStyle(Theme.muted)
                     } else {
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                             ForEach(0..<6, id: \.self) { index in

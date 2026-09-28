@@ -160,20 +160,30 @@ struct LabView: View {
             .background(store.armed ? Color(red: 0.91, green: 0.96, blue: 0.93) : .white, in: RoundedRectangle(cornerRadius: 22))
             .shadow(color: Theme.cardShadow, radius: 16, y: 8)
 
-            HStack {
+            HStack(alignment: .center, spacing: 14) {
+                Circle()
+                    .fill(store.radar.isConnected ? Theme.green : Color(white: 0.8))
+                    .frame(width: 14, height: 14)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("RADAR ESP · XM125").eyebrowStyle()
-                    Text(store.swing.radarValid ? "Radar values from mat packet / sim" : "Connect radar ESP")
+                    Text(store.radar.statusTitle)
                         .font(.subheadline.weight(.bold))
-                    Text("On iPhone, ball speed arrives in the GolfMat BLE packet when the radar ESP is wired to the mat.")
+                    Text(store.radar.statusDetail)
                         .font(.caption)
-                        .foregroundStyle(Theme.muted)
+                        .foregroundStyle(store.radar.isConnected ? .white.opacity(0.72) : Theme.muted)
                 }
                 Spacer()
+                FlowButtons {
+                    if store.radar.isConnected {
+                        pill("Disconnect") { store.disconnectRadar() }
+                    } else {
+                        pill("Radar BLE", enabled: store.radar.connectionState != .scanning) { store.connectRadar() }
+                    }
+                }
             }
             .padding(18)
-            .background(store.swing.radarValid ? Theme.greenDeep : .white, in: RoundedRectangle(cornerRadius: 22))
-            .foregroundStyle(store.swing.radarValid ? .white : Theme.ink)
+            .background(store.radar.isConnected ? Theme.greenDeep : .white, in: RoundedRectangle(cornerRadius: 22))
+            .foregroundStyle(store.radar.isConnected ? .white : Theme.ink)
             .shadow(color: Theme.cardShadow, radius: 16, y: 8)
         }
     }
@@ -197,7 +207,7 @@ struct LabView: View {
                              store.swing.ballSpeedMph,
                              store.swing.radarDistanceMm.map(String.init) ?? "—",
                              store.swing.radarIntraScore.map(String.init) ?? "—")
-                    : "Mat BLE carries radar fields when the second ESP is attached. USB radar is available in the web lab."
+                    : "Link the radar ESP over Bluetooth — its ball speed is merged into each mat strike."
             )
             .font(.caption)
             .foregroundStyle(store.swing.radarValid ? .white.opacity(0.72) : Theme.muted)

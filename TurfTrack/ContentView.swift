@@ -46,6 +46,8 @@ struct ContentView: View {
 
             tabBar
         }
+        .task { await store.refreshCloud() }
+        .onChange(of: auth.user) { user in store.syncProfile(user) }
         .sheet(isPresented: $showProfile) {
             ProfileView(
                 onOpenSettings: {

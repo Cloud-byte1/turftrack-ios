@@ -1,6 +1,6 @@
 import Foundation
 
-struct SessionSnapshot: Identifiable, Equatable {
+struct SessionSnapshot: Identifiable, Equatable, Codable {
     var n: Int
     var score: Int
     var carryYds: Int

@@ -234,7 +234,9 @@ final class AuthStore: ObservableObject {
             "Bio: \(account.bio.isEmpty ? "—" : account.bio)"
         ]
         lines.append("")
-        lines.append("Account data is stored on this device only and is not uploaded to a server.")
+        lines.append(SupabaseConfig.load() == nil
+            ? "Account data is stored on this device only and is not uploaded to a server."
+            : "Sign-in details stay on this device. Practice sessions, your public profile, and Clubhouse posts sync to the fairLie cloud (Supabase).")
         return lines.joined(separator: "\n")
     }
 

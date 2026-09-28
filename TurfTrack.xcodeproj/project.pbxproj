@@ -31,6 +31,11 @@
 		C10000000000000000000001 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000001 /* AppConfig.swift */; };
 		C10000000000000000000002 /* LegalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000002 /* LegalView.swift */; };
 		C10000000000000000000003 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000003 /* PrivacyInfo.xcprivacy */; };
+		D10000000000000000000001 /* RadarBLEManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000001 /* RadarBLEManager.swift */; };
+		D10000000000000000000002 /* SupabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000002 /* SupabaseClient.swift */; };
+		D10000000000000000000003 /* CloudModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000003 /* CloudModels.swift */; };
+		D10000000000000000000004 /* CloudSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000004 /* CloudSync.swift */; };
+		D10000000000000000000005 /* Config in Resources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000005 /* Config */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -60,6 +65,11 @@
 		C20000000000000000000002 /* LegalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalView.swift; sourceTree = "<group>"; };
 		C20000000000000000000003 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		C20000000000000000000004 /* TurfTrack.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TurfTrack.entitlements; sourceTree = "<group>"; };
+		D20000000000000000000001 /* RadarBLEManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarBLEManager.swift; sourceTree = "<group>"; };
+		D20000000000000000000002 /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
+		D20000000000000000000003 /* CloudModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudModels.swift; sourceTree = "<group>"; };
+		D20000000000000000000004 /* CloudSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSync.swift; sourceTree = "<group>"; };
+		D20000000000000000000005 /* Config */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Config; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -91,9 +101,11 @@
 				B20000000000000000000002 /* FairLieStore.swift */,
 				B2000000000000000000000A /* AuthStore.swift */,
 				A50000000000000000000004 /* BLE */,
+				D50000000000000000000001 /* Cloud */,
 				A50000000000000000000005 /* Models */,
 				B50000000000000000000001 /* Engine */,
 				A50000000000000000000006 /* Views */,
+				D20000000000000000000005 /* Config */,
 				A2000000000000000000000A /* Assets.xcassets */,
 				C20000000000000000000003 /* PrivacyInfo.xcprivacy */,
 				C20000000000000000000004 /* TurfTrack.entitlements */,
@@ -114,8 +126,19 @@
 			children = (
 				A20000000000000000000003 /* GolfMatBLEManager.swift */,
 				A20000000000000000000004 /* SwingPacket.swift */,
+				D20000000000000000000001 /* RadarBLEManager.swift */,
 			);
 			path = BLE;
+			sourceTree = "<group>";
+		};
+		D50000000000000000000001 /* Cloud */ = {
+			isa = PBXGroup;
+			children = (
+				D20000000000000000000002 /* SupabaseClient.swift */,
+				D20000000000000000000003 /* CloudModels.swift */,
+				D20000000000000000000004 /* CloudSync.swift */,
+			);
+			path = Cloud;
 			sourceTree = "<group>";
 		};
 		A50000000000000000000005 /* Models */ = {
@@ -213,6 +236,7 @@
 			files = (
 				A1000000000000000000000A /* Assets.xcassets in Resources */,
 				C10000000000000000000003 /* PrivacyInfo.xcprivacy in Resources */,
+				D10000000000000000000005 /* Config in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -245,6 +269,10 @@
 				B1000000000000000000000E /* ProfileView.swift in Sources */,
 				C10000000000000000000001 /* AppConfig.swift in Sources */,
 				C10000000000000000000002 /* LegalView.swift in Sources */,
+				D10000000000000000000001 /* RadarBLEManager.swift in Sources */,
+				D10000000000000000000002 /* SupabaseClient.swift in Sources */,
+				D10000000000000000000003 /* CloudModels.swift in Sources */,
+				D10000000000000000000004 /* CloudSync.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -299,8 +327,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = fairLie;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "fairLie connects to your GolfMat over Bluetooth to show live strike data.";
-				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "fairLie connects to your GolfMat over Bluetooth to show live strike data.";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "fairLie connects to your GolfMat and radar sensor over Bluetooth to show live strike and ball-speed data.";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "fairLie connects to your GolfMat and radar sensor over Bluetooth to show live strike and ball-speed data.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -332,8 +360,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = fairLie;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "fairLie connects to your GolfMat over Bluetooth to show live strike data.";
-				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "fairLie connects to your GolfMat over Bluetooth to show live strike data.";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "fairLie connects to your GolfMat and radar sensor over Bluetooth to show live strike and ball-speed data.";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "fairLie connects to your GolfMat and radar sensor over Bluetooth to show live strike and ball-speed data.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;

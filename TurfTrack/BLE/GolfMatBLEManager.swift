@@ -151,7 +151,9 @@ extension GolfMatBLEManager: CBCentralManagerDelegate {
             let matchesService = services.contains(Self.serviceUUID)
             let matchesName = name?.localizedCaseInsensitiveContains("Golf") == true
                 || name == Self.deviceName
-            guard matchesService || matchesName else { return }
+            let isRadar = name?.localizedCaseInsensitiveContains("Radar") == true
+                || services.contains(RadarBLEManager.serviceUUID)
+            guard (matchesService || matchesName), !isRadar else { return }
 
             self.stopScan()
             self.peripheral = peripheral

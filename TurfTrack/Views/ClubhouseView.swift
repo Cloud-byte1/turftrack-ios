@@ -7,6 +7,8 @@ struct ClubhouseView: View {
     var onOpenSettings: () -> Void
 
     @State private var board = "friends"
+    @State private var draft = ""
+    @State private var posting = false
 
     var body: some View {
         ScrollView {
@@ -102,28 +104,50 @@ struct ClubhouseView: View {
                         scope("Clubhouse", id: "clubhouse")
                     }
                 }
-                VStack(spacing: 8) {
-                    ForEach(Array(FairLieCatalog.leaderboard(scope: board, selfName: auth.user.name).enumerated()), id: \.element.id) { index, entry in
-                        HStack {
-                            Text("\(index + 1)").font(.caption.weight(.bold)).frame(width: 18)
-                            Text(entry.name).font(.subheadline.weight(.semibold))
-                            if entry.isSelf {
-                                Text("YOU").font(.system(size: 9, weight: .heavy)).foregroundStyle(Theme.green)
-                                    .padding(.horizontal, 6).padding(.vertical, 2)
-                                    .background(Color(red: 0.91, green: 0.96, blue: 0.93), in: Capsule())
+                if board == "clubhouse", !store.cloud.members.isEmpty {
+                    cloudLeaderboard
+                } else {
+                    VStack(spacing: 8) {
+                        ForEach(Array(FairLieCatalog.leaderboard(scope: board, selfName: auth.user.name).enumerated()), id: \.element.id) { index, entry in
+                            HStack {
+                                Text("\(index + 1)").font(.caption.weight(.bold)).frame(width: 18)
+                                Text(entry.name).font(.subheadline.weight(.semibold))
+                                if entry.isSelf {
+                                    Text("YOU").font(.system(size: 9, weight: .heavy)).foregroundStyle(Theme.green)
+                                        .padding(.horizontal, 6).padding(.vertical, 2)
+                                        .background(Color(red: 0.91, green: 0.96, blue: 0.93), in: Capsule())
+                                }
+                                Spacer()
+                                Text(entry.verified ? "verified" : "manual").font(.caption2).foregroundStyle(Theme.muted)
+                                Text("\(entry.score)").font(.headline)
                             }
-                            Spacer()
-                            Text(entry.verified ? "verified" : "manual").font(.caption2).foregroundStyle(Theme.muted)
-                            Text("\(entry.score)").font(.headline)
+                            .padding(.vertical, 4)
                         }
-                        .padding(.vertical, 4)
                     }
+                    .padding(14)
+                    .fairCard()
                 }
-                .padding(14)
-                .fairCard()
                 Text("Ranked by verified smart-mat sessions and skill bracket, not raw shot volume.")
                     .font(.caption2)
                     .foregroundStyle(Theme.muted)
+
+                if !store.cloud.announcements.isEmpty {
+                    Text("Announcements").font(.headline)
+                    ForEach(store.cloud.announcements) { item in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(item.title).font(.subheadline.weight(.bold))
+                            Text(item.body).font(.caption).foregroundStyle(Theme.muted)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(14)
+                        .background(Theme.gold.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.gold.opacity(0.3)))
+                    }
+                }
+
+                if store.cloud.isConfigured {
+                    feedSection
+                }
 
                 Text("Clubhouse").font(.headline)
                 group("Weekend Foursome", "4 members · Club champion board")
@@ -159,10 +183,88 @@ struct ClubhouseView: View {
                     link("Friends", action: {})
                     link("Privacy & safety", action: {})
                 }
+
+                Text(store.cloud.statusLabel)
+                    .font(.caption2)
+                    .foregroundStyle(Theme.muted)
+                    .frame(maxWidth: .infinity)
             }
             .padding(18)
         }
         .background(Theme.cream)
+        .refreshable { await store.refreshCloud() }
+    }
+
+    private var cloudLeaderboard: some View {
+        VStack(spacing: 8) {
+            ForEach(Array(store.cloud.members.enumerated()), id: \.element.id) { index, member in
+                HStack {
+                    Text("\(member.rank ?? index + 1)").font(.caption.weight(.bold)).frame(width: 18)
+                    VStack(alignment: .leading, spacing: 1) {
+                        HStack(spacing: 6) {
+                            Text(member.name).font(.subheadline.weight(.semibold))
+                            if member.isYou == true {
+                                Text("YOU").font(.system(size: 9, weight: .heavy)).foregroundStyle(Theme.green)
+                                    .padding(.horizontal, 6).padding(.vertical, 2)
+                                    .background(Color(red: 0.91, green: 0.96, blue: 0.93), in: Capsule())
+                            }
+                        }
+                        Text("HCP \(member.handicap.map { String(format: "%.1f", $0) } ?? "—") · \(member.swings ?? 0) swings · \(member.streak ?? 0)d streak")
+                            .font(.caption2)
+                            .foregroundStyle(Theme.muted)
+                    }
+                    Spacer()
+                    Text("\(member.score ?? 0)").font(.headline)
+                }
+                .padding(.vertical, 4)
+            }
+        }
+        .padding(14)
+        .fairCard()
+    }
+
+    private var feedSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Clubhouse feed").font(.headline)
+            HStack(spacing: 8) {
+                TextField("Share a range win…", text: $draft)
+                    .padding(12)
+                    .background(Theme.paper, in: RoundedRectangle(cornerRadius: 12))
+                Button(posting ? "…" : "Post") {
+                    posting = true
+                    Task {
+                        if await store.cloud.post(author: auth.user.name, text: draft) { draft = "" }
+                        posting = false
+                    }
+                }
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(Theme.green, in: Capsule())
+                .disabled(posting || draft.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            ForEach(store.cloud.feed) { post in
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text(post.author).font(.subheadline.weight(.bold))
+                        Spacer()
+                        Text(post.displayWhen).font(.caption2).foregroundStyle(Theme.muted)
+                    }
+                    Text(post.text).font(.subheadline)
+                    Button {
+                        Task { await store.cloud.like(post) }
+                    } label: {
+                        Label("\(post.likes ?? 0)", systemImage: "hand.thumbsup")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Theme.greenDark)
+                    }
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fairCard()
+            }
+        }
     }
 
     private func scope(_ title: String, id: String) -> some View {
@@ -221,6 +323,13 @@ struct ChallengesView: View {
                     .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.gold.opacity(0.35)))
                 }
 
+                if !store.cloud.challenges.isEmpty {
+                    Text("Clubhouse challenges").font(.headline)
+                    ForEach(store.cloud.challenges) { challenge in
+                        cloudChallengeRow(challenge)
+                    }
+                }
+
                 Text("Active").font(.headline)
                 ForEach(active) { challenge in
                     challengeRow(challenge)
@@ -263,6 +372,49 @@ struct ChallengesView: View {
             .padding(18)
         }
         .background(Theme.cream)
+        .refreshable { await store.refreshCloud() }
+    }
+
+    private func cloudChallengeRow(_ challenge: ClubChallenge) -> some View {
+        let target = max(1, challenge.target ?? 1)
+        let progress = min(target, challenge.progress ?? 0)
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(challenge.title).font(.subheadline.weight(.bold))
+                Spacer()
+                if challenge.isComplete {
+                    Text("DONE").font(.caption2.weight(.heavy)).foregroundStyle(Theme.gold)
+                } else if challenge.joined == true {
+                    Text("JOINED").font(.caption2.weight(.heavy)).foregroundStyle(Theme.green)
+                }
+            }
+            if let detail = challenge.detail {
+                Text(detail).font(.caption).foregroundStyle(Theme.muted)
+            }
+            ProgressView(value: Double(progress), total: Double(target)).tint(Theme.green)
+            HStack {
+                Text("\(progress)/\(target)").font(.caption).foregroundStyle(Theme.muted)
+                if let reward = challenge.reward {
+                    Text("· \(reward)").font(.caption2).foregroundStyle(Theme.gold)
+                }
+                Spacer()
+                if challenge.joined != true {
+                    Button("Join") { Task { await store.cloud.join(challenge) } }
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 14).padding(.vertical, 6)
+                        .background(Theme.green, in: Capsule())
+                } else if !challenge.isComplete {
+                    Button("Log strike") { Task { await store.cloud.logProgress(challenge) } }
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Theme.greenDark)
+                        .padding(.horizontal, 14).padding(.vertical, 6)
+                        .background(Color(red: 0.91, green: 0.96, blue: 0.93), in: Capsule())
+                }
+            }
+        }
+        .padding(14)
+        .fairCard()
     }
 
     private func challengeRow(_ challenge: FairLieChallenge) -> some View {

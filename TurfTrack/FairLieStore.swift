@@ -34,6 +34,8 @@ final class FairLieStore: ObservableObject {
     @Published var trackSimLive = true
 
     let ble = GolfMatBLEManager()
+    let radar = RadarBLEManager()
+    let cloud = CloudSync()
     private var cancellables = Set<AnyCancellable>()
 
     var liveSession: PracticeSession? {
@@ -47,6 +49,16 @@ final class FairLieStore: ObservableObject {
     init() {
         ble.objectWillChange
             .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+        radar.objectWillChange
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+        cloud.objectWillChange
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+        cloud.$sessions
+            .filter { !$0.isEmpty }
+            .sink { [weak self] list in self?.sessions = list }
             .store(in: &cancellables)
         ble.$lastPacket
             .compactMap { $0 }
@@ -76,6 +88,12 @@ final class FairLieStore: ObservableObject {
             let completed = buildSessionSummary(sessionSwings, club: sessionClub, when: "Just now")
             sessions.insert(completed, at: 0)
             selectedSession = completed
+            if cloud.isConfigured {
+                Task {
+                    let saved = await cloud.upload(completed)
+                    notice = saved == nil ? "Session saved on this phone — cloud sync failed." : "Session saved to your Supabase history."
+                }
+            }
         }
         activeSessionStarted = false
         armed = false
@@ -83,6 +101,25 @@ final class FairLieStore: ObservableObject {
         sessionSwings = []
         tab = .progress
         notice = "Session saved."
+    }
+
+    func refreshCloud() async {
+        await cloud.refresh()
+    }
+
+    func syncProfile(_ user: FairLieUser) {
+        guard cloud.isConfigured else { return }
+        Task { await cloud.pushProfile(user) }
+    }
+
+    func connectRadar() {
+        notice = "Opening Bluetooth for the radar ESP…"
+        radar.connect()
+    }
+
+    func disconnectRadar() {
+        radar.disconnect()
+        notice = "Radar disconnected."
     }
 
     func connectMat() {
@@ -228,7 +265,10 @@ final class FairLieStore: ObservableObject {
         tracking = true
         lastReadingAt = Date()
         packetCount += 1
-        let incoming = SwingResult.from(packet: packet)
+        var incoming = SwingResult.from(packet: packet)
+        if !incoming.radarValid, let sample = radar.sampleForStrike() {
+            incoming = incoming.mergingRadar(sample)
+        }
         if !armed {
             swing = incoming
             notice = "\(incoming.label) tracked — initialize swing to record into a session."

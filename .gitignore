@@ -35,3 +35,4 @@ Carthage/Build/
 AuthKey_*.p8
 .env
 .env.*
+TurfTrack/Config/Supabase.plist
