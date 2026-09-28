@@ -18,6 +18,13 @@ I can’t create the account for you — you sign up, then we program against yo
    routes profile edits, joins, likes, and RSVPs through narrow functions. After it,
    the publishable key cannot update or delete rows directly; deleting sessions from
    the backend needs `SUPABASE_SERVICE_ROLE_KEY`.
+5. Then run [`auth_migration.sql`](./auth_migration.sql). It moves the iPhone app to
+   Supabase Auth: every auth user gets a profile and leaderboard row (trigger on
+   `auth.users`), sessions become private per golfer, feed posts are stamped with the
+   author's `user_id`, challenge progress / RSVPs / likes are stored per golfer, and
+   `delete_my_account()` removes a golfer and everything they own. Profiles are only
+   readable when signed in, and `update_profile` is dropped, so the Express backend
+   needs `SUPABASE_SERVICE_ROLE_KEY` to read or edit profiles after this step.
 
 ## 3. Copy API keys
 
