@@ -222,6 +222,42 @@ struct LikesPatch: Encodable {
     var likes: Int
 }
 
+struct ClubEvent: Codable, Identifiable, Equatable {
+    var id: String
+    var title: String
+    var detail: String?
+    var whenLabel: String?
+    var place: String?
+    var attendees: Int?
+    var rsvped: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case id, title, detail, place, attendees, rsvped
+        case whenLabel = "when_label"
+    }
+
+    static let fallback: [ClubEvent] = [
+        .init(id: "ev_tuesday", title: "Tuesday range night", detail: "Open bay with live mat + radar scoring.",
+              whenLabel: "Tue 6:00–8:00 PM", place: "Bay 3 · Strike Lab Range", attendees: 7, rsvped: true),
+        .init(id: "ev_sat", title: "Saturday smash factor clinic", detail: "Radar-only session focused on ball speed.",
+              whenLabel: "Sat 10:00 AM", place: "Bay 1", attendees: 4, rsvped: false),
+    ]
+}
+
+struct IDArg: Encodable {
+    var p_id: String
+}
+
+struct ProfileArgs: Encodable {
+    var p_display_name: String
+    var p_handle: String
+    var p_handicap: Double
+    var p_bio: String
+    var p_location: String
+    var p_preferred_clubs: [String]
+    var p_streak_days: Int
+}
+
 struct Announcement: Codable, Identifiable, Equatable {
     var id: String
     var title: String

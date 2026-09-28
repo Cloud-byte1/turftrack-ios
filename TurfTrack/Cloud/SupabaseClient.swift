@@ -24,6 +24,14 @@ struct SupabaseConfig {
 enum SupabaseError: LocalizedError {
     case http(Int, String)
 
+    /// The lockdown SQL has not been run yet, so the RPC does not exist.
+    var isMissingFunction: Bool {
+        if case .http(let code, let body) = self {
+            return code == 404 || body.contains("PGRST202")
+        }
+        return false
+    }
+
     var errorDescription: String? {
         switch self {
         case .http(let code, let body): return "Supabase \(code): \(body.prefix(160))"
@@ -46,6 +54,11 @@ struct SupabaseREST {
 
     func update<T: Decodable, Body: Encodable>(_ table: String, where filters: [URLQueryItem], _ body: Body) async throws -> [T] {
         try await send(table, method: "PATCH", query: filters, body: body)
+    }
+
+    /// Calls a `returns setof <table>` function from `app_store_lockdown.sql`.
+    func rpc<T: Decodable, Body: Encodable>(_ function: String, _ args: Body) async throws -> [T] {
+        try await send("rpc/\(function)", method: "POST", body: args)
     }
 
     private func send<T: Decodable>(

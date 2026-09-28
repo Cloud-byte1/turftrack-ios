@@ -28,12 +28,17 @@ Sessions, the profile, and the Clubhouse (members, challenges, feed,
 announcements) use the same tables as the `golf_mat` backend
 (`backend/supabase/schema.sql`).
 
-1. Copy `TurfTrack/Config/Supabase.example.plist` to `TurfTrack/Config/Supabase.plist`
-2. Fill in `SUPABASE_URL` and `SUPABASE_ANON_KEY` (the publishable key)
+`TurfTrack/Config/Supabase.plist` holds the project URL and **publishable** key, so
+every Xcode build connects. The publishable key ships in the app binary by design;
+never put the `service_role` key here. Without the plist the app runs on sample data.
 
-`Supabase.plist` is gitignored. Without it the app runs on local sample data.
-The schema's row-level security policies are dev-open (anyone with the key can
-write); tighten them before shipping.
+Before submitting, run [`docs/supabase/app_store_lockdown.sql`](docs/supabase/app_store_lockdown.sql)
+in the Supabase SQL Editor (after `schema.sql`). It makes the key read-only apart
+from saving sessions, posting, and the narrow profile/challenge/like/RSVP functions
+the app calls. Until it runs, the app falls back to direct table writes.
+
+The Clubhouse feed is user-generated content: each post has **Report**, **Hide**,
+and **Block author** (App Review Guideline 1.2). Reports email `AppConfig.supportEmail`.
 
 ## Open & run
 
