@@ -32,13 +32,35 @@ announcements) use the same tables as the `golf_mat` backend
 every Xcode build connects. The publishable key ships in the app binary by design;
 never put the `service_role` key here. Without the plist the app runs on sample data.
 
-Before submitting, run [`docs/supabase/app_store_lockdown.sql`](docs/supabase/app_store_lockdown.sql)
-in the Supabase SQL Editor (after `schema.sql`). It makes the key read-only apart
-from saving sessions, posting, and the narrow profile/challenge/like/RSVP functions
-the app calls. Until it runs, the app falls back to direct table writes.
+Run these in the Supabase SQL Editor, in order: `schema.sql`,
+[`docs/supabase/app_store_lockdown.sql`](docs/supabase/app_store_lockdown.sql), then
+[`docs/supabase/auth_migration.sql`](docs/supabase/auth_migration.sql).
+
+### Accounts (Supabase Auth)
+
+Sign-in uses Supabase Auth — email + password or Sign in with Apple. Tokens live in
+the Keychain and refresh automatically. Row-level security scopes data to each golfer:
+
+- **Private:** practice sessions, challenge progress, RSVPs, likes
+- **Shared:** leaderboard (`clubhouse_members`, one row per golfer, stats kept in sync
+  by a trigger), feed posts (author stamped server-side), events, announcements
+- **Delete account** (Settings) calls `delete_my_account()`, which removes the auth
+  user and everything they own (App Review 5.1.1(v))
+
+Supabase dashboard setup:
+
+1. **Authentication → Sign In / Providers → Apple:** enable it and add
+   `com.fairlie.turftrack` under Client IDs (native sign-in needs no secret key)
+2. **Authentication → Sign In / Providers → Email:** turn **Confirm email** off for the
+   smoothest review, or leave it on — the app tells new golfers to check their inbox
+3. **Authentication → URL Configuration:** set the Site URL to your support site so
+   password-reset links land somewhere sensible
+
+Give App Review a demo account (email + password) in App Store Connect.
 
 The Clubhouse feed is user-generated content: each post has **Report**, **Hide**,
-and **Block author** (App Review Guideline 1.2). Reports email `AppConfig.supportEmail`.
+and **Block author**, and golfers can delete their own posts (App Review Guideline
+1.2). Reports email `AppConfig.supportEmail`.
 
 ## Open & run
 

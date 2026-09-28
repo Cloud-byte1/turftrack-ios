@@ -121,8 +121,10 @@ struct SessionRow: Codable {
     }
 }
 
+/// One golfer's row in `profiles`; nil fields are left out of PATCH bodies.
 struct ProfileRow: Codable {
     var id: String?
+    var userId: String?
     var displayName: String?
     var handle: String?
     var initials: String?
@@ -131,27 +133,24 @@ struct ProfileRow: Codable {
     var bio: String?
     var location: String?
     var streakDays: Int?
+    var skill: String?
+    var needsSetup: Bool?
     var updatedAt: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, handle, initials, handicap, bio, location
+        case id, handle, initials, handicap, bio, location, skill
+        case userId = "user_id"
         case displayName = "display_name"
         case preferredClubs = "preferred_clubs"
         case streakDays = "streak_days"
+        case needsSetup = "needs_setup"
         case updatedAt = "updated_at"
     }
 }
 
-struct MemberRow: Codable {
-    var name: String?
-    var handle: String?
-    var initials: String?
-    var handicap: Double?
-    var streak: Int?
-}
-
 struct ClubMember: Codable, Identifiable, Equatable {
     var id: String
+    var userId: String?
     var name: String
     var handle: String?
     var initials: String?
@@ -160,11 +159,10 @@ struct ClubMember: Codable, Identifiable, Equatable {
     var score: Int?
     var swings: Int?
     var streak: Int?
-    var isYou: Bool?
 
     enum CodingKeys: String, CodingKey {
         case id, name, handle, initials, handicap, rank, score, swings, streak
-        case isYou = "is_you"
+        case userId = "user_id"
     }
 }
 
@@ -193,6 +191,7 @@ struct ChallengePatch: Encodable {
 
 struct FeedPost: Codable, Identifiable, Equatable {
     var id: String
+    var userId: String?
     var author: String
     var text: String
     var whenLabel: String?
@@ -201,6 +200,7 @@ struct FeedPost: Codable, Identifiable, Equatable {
 
     enum CodingKeys: String, CodingKey {
         case id, author, text, likes
+        case userId = "user_id"
         case whenLabel = "when_label"
         case createdAt = "created_at"
     }
@@ -248,15 +248,7 @@ struct IDArg: Encodable {
     var p_id: String
 }
 
-struct ProfileArgs: Encodable {
-    var p_display_name: String
-    var p_handle: String
-    var p_handicap: Double
-    var p_bio: String
-    var p_location: String
-    var p_preferred_clubs: [String]
-    var p_streak_days: Int
-}
+struct NoArgs: Encodable {}
 
 struct Announcement: Codable, Identifiable, Equatable {
     var id: String

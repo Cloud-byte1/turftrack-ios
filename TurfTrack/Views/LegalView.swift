@@ -21,7 +21,12 @@ enum LegalDocument: String, Identifiable {
         }
     }
 
-    var effectiveDate: String { "September 3, 2026" }
+    var effectiveDate: String {
+        switch self {
+        case .privacy: return "September 27, 2026"
+        case .terms: return "September 3, 2026"
+        }
+    }
 
     var sections: [LegalSection] {
         switch self {
@@ -50,7 +55,7 @@ enum LegalCopy {
         LegalSection(
             heading: "How your data is stored",
             body: """
-            Your account and practice history are stored locally on your iPhone using the operating system's standard app storage. fairLie does not upload your profile or swing history to a fairLie server, and we do not sell or share it with data brokers or advertisers.
+            Your account, profile, and practice sessions are stored with our cloud database provider, Supabase, so they follow you across devices. Sign-in tokens are kept in your iPhone's Keychain. Your practice sessions are private to your account. Your display name, username, handicap, streak, and average strike score appear on the Clubhouse leaderboard, and posts you share in the Clubhouse feed are visible to other fairLie golfers. We do not sell or share your data with data brokers or advertisers.
             """
         ),
         LegalSection(
@@ -229,7 +234,7 @@ struct DeleteAccountView: View {
                         Text("This cannot be undone")
                             .font(.subheadline.weight(.bold))
                             .foregroundStyle(Theme.danger)
-                        Text("Deleting your account immediately removes your profile, saved sessions, swing history, badges, and challenge progress from this device. Nothing is archived and nothing can be restored.")
+                        Text("Deleting your account immediately removes your fairLie account, profile, saved sessions, Clubhouse posts, likes, RSVPs, and challenge progress from our servers and this device. Nothing is archived and nothing can be restored.")
                             .font(.footnote)
                             .foregroundStyle(Theme.ink)
                     }
@@ -262,16 +267,26 @@ struct DeleteAccountView: View {
                             .background(Theme.paper, in: RoundedRectangle(cornerRadius: 12))
                     }
 
-                    Button("Delete my account permanently") {
-                        auth.deleteAccount()
-                        onClose()
+                    if let error = auth.errorMessage {
+                        Text(error).font(.caption).foregroundStyle(Theme.danger)
                     }
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(canDelete ? Theme.danger : Theme.danger.opacity(0.35), in: Capsule())
-                    .disabled(!canDelete)
+
+                    Button {
+                        Task {
+                            if await auth.deleteAccount() { onClose() }
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            if auth.isWorking { ProgressView().tint(.white) }
+                            Text("Delete my account permanently")
+                        }
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(canDelete ? Theme.danger : Theme.danger.opacity(0.35), in: Capsule())
+                    }
+                    .disabled(!canDelete || auth.isWorking)
 
                     if let url = AppConfig.supportMailtoURL {
                         Link("Contact support instead", destination: url)

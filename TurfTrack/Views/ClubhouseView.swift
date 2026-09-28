@@ -276,11 +276,11 @@ struct ClubhouseView: View {
         VStack(spacing: 8) {
             ForEach(Array(store.cloud.members.enumerated()), id: \.element.id) { index, member in
                 HStack {
-                    Text("\(member.rank ?? index + 1)").font(.caption.weight(.bold)).frame(width: 18)
+                    Text("\(index + 1)").font(.caption.weight(.bold)).frame(width: 18)
                     VStack(alignment: .leading, spacing: 1) {
                         HStack(spacing: 6) {
                             Text(member.name).font(.subheadline.weight(.semibold))
-                            if member.isYou == true { youTag }
+                            if store.cloud.isMe(member) { youTag }
                         }
                         Text("HCP \(member.handicap.map { String(format: "%.1f", $0) } ?? "—") · \(member.swings ?? 0) swings · \(member.streak ?? 0)d streak")
                             .font(.caption2)
@@ -380,9 +380,11 @@ struct ClubhouseView: View {
                         Spacer()
                         Text(post.displayWhen).font(.caption2).foregroundStyle(Theme.muted)
                         Menu {
-                            Button("Report post", role: .destructive) { report(post) }
-                            Button("Hide post") { store.cloud.hide(post) }
-                            if post.author != auth.user.name {
+                            if store.cloud.isMine(post) {
+                                Button("Delete post", role: .destructive) { Task { await store.cloud.delete(post) } }
+                            } else {
+                                Button("Report post", role: .destructive) { report(post) }
+                                Button("Hide post") { store.cloud.hide(post) }
                                 Button("Block \(post.author)", role: .destructive) { store.cloud.block(author: post.author) }
                             }
                         } label: {

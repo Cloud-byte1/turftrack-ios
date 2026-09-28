@@ -1,6 +1,6 @@
 # fairLie Privacy Policy
 
-**Effective September 3, 2026**
+**Effective September 27, 2026**
 
 This is the canonical version of the policy hosted at `https://fairlie.app/privacy`
 and mirrored inside the app under Settings → Privacy & data. Keep both in sync
@@ -15,10 +15,12 @@ the mat, club and ball speed, attack angle, club path, and the timestamp of each
 
 ## How your data is stored
 
-Your account and practice history are stored locally on your iPhone using the
-operating system's standard app storage. fairLie does not upload your profile or
-swing history to a fairLie server, and we do not sell or share it with data brokers
-or advertisers.
+Your account, profile, and practice sessions are stored with our cloud database
+provider, Supabase, so they follow you across devices. Sign-in tokens are kept in
+your iPhone's Keychain. Your practice sessions are private to your account. Your
+display name, username, handicap, streak, and average strike score appear on the
+Clubhouse leaderboard, and posts you share in the Clubhouse feed are visible to other
+fairLie golfers. We do not sell or share your data with data brokers or advertisers.
 
 ## Bluetooth
 
@@ -45,7 +47,8 @@ permission.
 - **Edit your profile** at any time from Settings.
 - **Export your data** from Settings → Privacy & data → Export my data.
 - **Delete your account** from Settings → Delete account. Deletion is immediate,
-  removes your profile and all practice history, and cannot be undone.
+  removes your account, profile, practice history, Clubhouse posts, likes, RSVPs,
+  and challenge progress from our servers, and cannot be undone.
 
 ## Children
 

@@ -56,10 +56,12 @@ final class FairLieStore: ObservableObject {
         cloud.objectWillChange
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
-        cloud.$sessions
-            .filter { !$0.isEmpty }
-            .sink { [weak self] list in self?.sessions = list }
-            .store(in: &cancellables)
+        if cloud.isConfigured {
+            sessions = []
+            cloud.$sessions
+                .sink { [weak self] list in self?.sessions = list }
+                .store(in: &cancellables)
+        }
         ble.$lastPacket
             .compactMap { $0 }
             .sink { [weak self] packet in
@@ -107,9 +109,12 @@ final class FairLieStore: ObservableObject {
         await cloud.refresh()
     }
 
-    func syncProfile(_ user: FairLieUser) {
-        guard cloud.isConfigured else { return }
-        Task { await cloud.pushProfile(user) }
+    func resetForSignOut() {
+        cloud.reset()
+        selectedSession = nil
+        sessionSwings = []
+        activeSessionStarted = false
+        tab = .home
     }
 
     func connectRadar() {

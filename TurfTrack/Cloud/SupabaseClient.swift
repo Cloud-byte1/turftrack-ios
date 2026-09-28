@@ -61,20 +61,31 @@ struct SupabaseREST {
         try await send("rpc/\(function)", method: "POST", body: args)
     }
 
+    func delete(_ table: String, where filters: [URLQueryItem]) async throws {
+        let _: [Empty] = try await send(table, method: "DELETE", query: filters)
+    }
+
+    /// For `returns void` functions such as `delete_my_account`.
+    func rpcVoid(_ function: String) async throws {
+        let _: [Empty] = try await send("rpc/\(function)", method: "POST", body: [String: String]())
+    }
+
+    private struct Empty: Decodable {}
+
     private func send<T: Decodable>(
         _ table: String,
         method: String,
         query: [URLQueryItem] = [],
-        body: (any Encodable)? = nil
+        body: (any Encodable)? = nil,
+        retried: Bool = false
     ) async throws -> [T] {
         var components = URLComponents(url: config.url.appendingPathComponent("rest/v1/\(table)"), resolvingAgainstBaseURL: false)!
         if !query.isEmpty { components.queryItems = query }
         var request = URLRequest(url: components.url!)
         request.httpMethod = method
         request.setValue(config.anonKey, forHTTPHeaderField: "apikey")
-        // Legacy anon keys are JWTs and also go in Authorization; new publishable keys must not.
-        if config.anonKey.hasPrefix("eyJ") {
-            request.setValue("Bearer \(config.anonKey)", forHTTPHeaderField: "Authorization")
+        if let bearer = await bearerToken(forceRefresh: retried) {
+            request.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization")
         }
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let body {
@@ -84,10 +95,29 @@ struct SupabaseREST {
         }
         let (data, response) = try await session.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        if status == 401, !retried, AuthTokenStore.shared.current != nil {
+            return try await send(table, method: method, query: query, body: body, retried: true)
+        }
         guard (200..<300).contains(status) else {
             throw SupabaseError.http(status, String(data: data, encoding: .utf8) ?? "")
         }
-        if data.isEmpty { return [] }
+        let trimmed = data.drop { $0 == 0x20 || $0 == 0x0A }
+        if trimmed.isEmpty || trimmed.first != UInt8(ascii: "[") { return [] }
         return try JSONDecoder().decode([T].self, from: data)
+    }
+
+    /// Signed-in user's JWT (refreshed when close to expiry); legacy JWT anon keys otherwise.
+    /// New publishable keys only go in `apikey`, never in Authorization.
+    private func bearerToken(forceRefresh: Bool) async -> String? {
+        guard var tokens = AuthTokenStore.shared.current else {
+            return config.anonKey.hasPrefix("eyJ") ? config.anonKey : nil
+        }
+        if forceRefresh || tokens.expiresAt < Date().addingTimeInterval(60) {
+            if let refreshed = try? await SupabaseAuthAPI(config: config).refresh(tokens.refreshToken) {
+                AuthTokenStore.shared.set(refreshed)
+                tokens = refreshed
+            }
+        }
+        return tokens.accessToken
     }
 }

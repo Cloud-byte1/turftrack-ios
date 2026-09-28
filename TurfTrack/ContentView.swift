@@ -8,13 +8,21 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if !auth.isSignedIn {
+            if auth.isRestoring {
+                ProgressView("Signing you in…")
+                    .tint(Theme.green)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Theme.cream.ignoresSafeArea())
+            } else if !auth.isSignedIn {
                 LoginView()
             } else if auth.needsProfileSetup {
                 ProfileSetupView()
             } else {
                 mainApp
             }
+        }
+        .onChange(of: auth.session?.id) { id in
+            if id == nil { store.resetForSignOut() }
         }
     }
 
@@ -46,8 +54,8 @@ struct ContentView: View {
 
             tabBar
         }
-        .task { await store.refreshCloud() }
-        .onChange(of: auth.user) { user in store.syncProfile(user) }
+        .task(id: auth.session?.id) { await store.refreshCloud() }
+        .onChange(of: store.cloud.stats) { stats in auth.apply(stats: stats) }
         .sheet(isPresented: $showProfile) {
             ProfileView(
                 onOpenSettings: {

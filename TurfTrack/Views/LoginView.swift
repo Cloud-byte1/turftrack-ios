@@ -62,19 +62,41 @@ struct LoginView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .background(Theme.danger.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
                     }
+                    if let info = auth.infoMessage {
+                        Text(info)
+                            .font(.caption)
+                            .foregroundStyle(Theme.greenDark)
+                            .padding(10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Theme.green.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+                    }
 
-                    Button(mode == "sign-in" ? "Sign in" : "Create account") {
+                    Button {
                         if mode == "sign-in" {
                             auth.signIn(email: email, password: password)
                         } else {
                             auth.signUp(name: name, email: email, password: password)
                         }
+                    } label: {
+                        HStack(spacing: 8) {
+                            if auth.isWorking { ProgressView().tint(.white) }
+                            Text(mode == "sign-in" ? "Sign in" : "Create account")
+                        }
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Theme.green, in: Capsule())
                     }
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Theme.green, in: Capsule())
+                    .disabled(auth.isWorking)
+
+                    if mode == "sign-in" {
+                        Button("Forgot password?") { auth.sendPasswordReset(email: email) }
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Theme.greenDark)
+                            .frame(maxWidth: .infinity)
+                            .disabled(auth.isWorking)
+                    }
 
                     appleSignInAndLegal
                 }
@@ -112,7 +134,7 @@ struct LoginView: View {
 
     private var legalFooter: some View {
         VStack(spacing: 8) {
-            Text("Your fairLie account stores your profile and swing history on this device.")
+            Text("Your fairLie account syncs your profile, practice sessions, and Clubhouse activity securely to the fairLie cloud. Delete it any time in Settings.")
                 .font(.caption)
                 .foregroundStyle(Theme.muted)
                 .multilineTextAlignment(.center)
@@ -129,7 +151,7 @@ struct LoginView: View {
     }
 
     private func chip(_ title: String, id: String) -> some View {
-        Button(title) { mode = id; auth.errorMessage = nil }
+        Button(title) { mode = id; auth.errorMessage = nil; auth.infoMessage = nil }
             .font(.caption.weight(.bold))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
@@ -211,14 +233,24 @@ struct ProfileSetupView: View {
                 .padding(16)
                 .fairCard()
 
-                Button("Enter the clubhouse") {
-                    auth.completeSetup(city: city, handicap: handicap, skill: skill, bag: Array(bag))
+                if let error = auth.errorMessage {
+                    Text(error).font(.caption).foregroundStyle(Theme.danger)
                 }
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(Theme.green, in: Capsule())
+
+                Button {
+                    auth.completeSetup(city: city, handicap: handicap, skill: skill, bag: Array(bag))
+                } label: {
+                    HStack(spacing: 8) {
+                        if auth.isWorking { ProgressView().tint(.white) }
+                        Text("Enter the clubhouse")
+                    }
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Theme.green, in: Capsule())
+                }
+                .disabled(auth.isWorking)
             }
             .padding(18)
         }
