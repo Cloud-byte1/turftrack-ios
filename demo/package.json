@@ -1,0 +1,14 @@
+{
+  "name": "fairlie-demo-reel",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "setup": "npm install && playwright install chromium",
+    "record": "node record.mjs",
+    "preview": "node preview.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.47.0"
+  }
+}

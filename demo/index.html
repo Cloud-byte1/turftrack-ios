@@ -1,0 +1,1237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>fairLie — demo reel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* Palette lifted from TurfTrack/Theme.swift so the demo matches the real app. */
+:root{
+  --ink:#17211c; --muted:#697570; --eyebrow:#7d8a82;
+  --green:#1c9c5e; --green-dark:#12613d; --green-deep:#0f5c38;
+  --cream:#f5f5f5; --paper:#ffffff; --gold:#f5d433;
+  --profile:#e8d4a8; --danger:#d6453b;
+  --card-shadow:0 8px 18px rgba(20,56,38,.08);
+  --w:430px; --h:932px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+html,body{background:#000;display:flex;align-items:center;justify-content:center;height:100%;overflow:hidden}
+body{font-family:Inter,-apple-system,"SF Pro Display","Segoe UI",sans-serif}
+
+#stage{position:relative;transform-origin:center center}
+.phone{position:relative;width:var(--w);height:var(--h);background:var(--cream);overflow:hidden}
+
+/* ---------- status bar ---------- */
+.statusbar{height:54px;display:flex;align-items:flex-end;justify-content:space-between;
+  padding:0 30px 8px;font-size:15px;font-weight:600;color:var(--ink);position:relative;z-index:40}
+.statusbar .icons{display:flex;gap:6px;align-items:center}
+.bars{display:flex;gap:2px;align-items:flex-end}
+.bars i{width:3px;background:var(--ink);border-radius:1px;display:block}
+.bars i:nth-child(1){height:4px}.bars i:nth-child(2){height:6px}
+.bars i:nth-child(3){height:8px}.bars i:nth-child(4){height:10px}
+.batt{width:24px;height:12px;border:1.5px solid var(--ink);border-radius:3px;padding:1.5px}
+.batt span{display:block;height:100%;width:78%;background:var(--ink);border-radius:1px}
+
+/* ---------- screens ---------- */
+.screens{position:absolute;inset:54px 0 0 0}
+.screen{position:absolute;inset:0;overflow:hidden;opacity:0;pointer-events:none;
+  transition:opacity .28s ease;padding-bottom:96px}
+.screen.on{opacity:1}
+/* Grow with content; .screen clips. Never set height:100% + overflow:hidden here —
+   that clips below-the-fold panels so transform "scrolls" only show empty cream. */
+.scroller{padding:16px 18px 110px;transition:transform .7s cubic-bezier(.4,0,.2,1);will-change:transform}
+
+.card{background:var(--paper);border-radius:22px;box-shadow:var(--card-shadow)}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:1.6px;color:var(--eyebrow)}
+.muted{color:var(--muted)}
+.h1{font-size:26px;font-weight:800;color:var(--ink);letter-spacing:-.4px}
+.h2{font-size:17px;font-weight:700;color:var(--ink)}
+.cap{font-size:12px;color:var(--muted)}
+.row{display:flex;align-items:center}
+.grow{flex:1}
+.stack{display:flex;flex-direction:column}
+.mt{margin-top:14px}
+
+/* ---------- home ---------- */
+.avatar{width:48px;height:48px;border-radius:50%;background:var(--profile);
+  display:grid;place-items:center;font-weight:800;font-size:17px;color:var(--ink);
+  box-shadow:0 0 0 3px #fff}
+.pill{font-size:12px;font-weight:700;padding:6px 11px;border-radius:99px;
+  background:#eee;color:var(--muted);transition:all .3s}
+.pill.on{background:#e8f5ee;color:var(--green-dark)}
+.hero{height:160px;border-radius:22px;padding:18px;display:flex;flex-direction:column;
+  justify-content:flex-end;background:linear-gradient(135deg,var(--green-deep),#1e5238);color:#fff}
+.hero b{font-size:22px;font-weight:800}
+.chips{display:flex;gap:10px}
+.chip{flex:1;text-align:center;padding:14px 0;border-radius:22px;background:var(--paper);box-shadow:var(--card-shadow)}
+.chip b{display:block;font-size:20px;font-weight:900;color:var(--green-dark)}
+.chip span{font-size:11px;color:var(--muted)}
+.cta{width:100%;padding:15px;border:0;border-radius:99px;background:var(--green);color:#fff;
+  font-size:15px;font-weight:700;font-family:inherit;transition:background .3s}
+.cta.end{background:var(--danger)}
+.bar{height:8px;border-radius:99px;background:#ebebeb;overflow:hidden;margin-top:10px}
+.bar i{display:block;height:100%;background:var(--green);border-radius:99px;transition:width .8s ease}
+.insight{display:flex;gap:12px;align-items:center;padding:14px}
+.insight .tick{width:4px;align-self:stretch;border-radius:99px}
+.photos{display:flex;gap:10px}
+.photos div{flex:1;height:88px;border-radius:14px;display:flex;align-items:flex-end;
+  padding:8px;color:#fff;font-size:12px;font-weight:700}
+
+/* ---------- practice / strike lab ---------- */
+.pr-top{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.brand-mark{width:36px;height:36px;display:grid;place-items:center;background:var(--green);border-radius:50%;color:#fff;font-size:16px}
+.streak{font-size:11px;font-weight:700;color:var(--green-dark);background:#e8f5ee;padding:6px 10px;border-radius:99px}
+.welcome-row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:10px}
+.welcome-row h1{font-size:22px;font-weight:800;color:var(--ink);letter-spacing:-.3px;margin-top:4px}
+.welcome-row p{font-size:13px;color:var(--muted);margin-top:4px}
+.session-pill{min-height:40px;padding:0 16px;border:0;border-radius:99px;background:var(--green);color:#fff;font-size:12px;font-weight:700;font-family:inherit;white-space:nowrap;transition:.3s}
+.session-pill.end{background:var(--danger)}
+.active-session{display:none;margin-top:14px;padding:16px;border-radius:22px;background:var(--green-dark);color:#fff;box-shadow:0 14px 32px rgba(17,98,60,.16)}
+.active-session.on{display:block}
+.active-session .rec{width:10px;height:10px;border-radius:50%;background:#7ef0aa;box-shadow:0 0 0 6px rgba(126,240,170,.12);flex-shrink:0}
+.sess-head{display:flex;align-items:center;gap:10px}
+.sess-head .eyebrow{color:rgba(255,255,255,.55);margin:0}
+.sess-head h2{font-size:16px;font-weight:700;color:#fff;margin-top:2px}
+.sess-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 8px;margin-top:12px}
+.sess-stats span{font-size:9px;color:rgba(255,255,255,.55);display:block}
+.sess-stats b{font-size:16px;font-weight:800;color:#fff}
+.sess-finish{margin-top:12px;width:100%;padding:11px;border:0;border-radius:99px;background:#fff;color:var(--green-dark);font-size:12px;font-weight:700;font-family:inherit}
+.workflow{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:14px;padding:10px 8px;background:var(--paper);border-radius:16px;box-shadow:var(--card-shadow)}
+.wf-step{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 2px;border-radius:10px;font-size:8px;font-weight:700;color:#9aa49e;text-align:center}
+.wf-step i{width:22px;height:22px;display:grid;place-items:center;border-radius:50%;background:#edf0ee;font-style:normal;font-size:10px}
+.wf-step.done{color:var(--green-dark)}.wf-step.done i{color:#fff;background:var(--green)}
+.wf-step.active{color:var(--green-dark);background:#e8f6ee}
+.wf-step.active i{color:#fff;background:var(--green-dark);box-shadow:0 0 0 4px rgba(28,156,94,.12)}
+.dock{margin-top:10px;padding:14px;border-radius:18px;background:var(--paper);box-shadow:var(--card-shadow)}
+.dock.armed{background:linear-gradient(100deg,#e8f6ee,#fff 62%)}
+.dock.radar-locked{background:linear-gradient(100deg,var(--green-deep),#173528 70%);color:#fff}
+.dock.radar-locked .eyebrow{color:rgba(255,255,255,.55)}.dock.radar-locked .dock-sub{color:rgba(255,255,255,.65)}.dock.radar-locked .dock-title{color:#fff}
+.dock-head{display:flex;align-items:flex-start;gap:10px}
+.dock-pulse{width:10px;height:10px;border-radius:50%;background:#cbd2ce;border:3px solid #f0f2f1;flex-shrink:0;margin-top:4px}
+.dock.armed .dock-pulse,.dock.radar-locked .dock-pulse{background:var(--green);border-color:#d9f1e3}
+.dock-title{font-size:14px;font-weight:700;color:var(--ink);margin-top:2px}
+.dock-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35}
+.dock-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.dbtn{padding:8px 12px;border:0;border-radius:99px;font-size:11px;font-weight:700;font-family:inherit;background:#eef5f1;color:var(--green-dark);transition:.25s}
+.dbtn.primary{background:var(--green);color:#fff}.dbtn.dark{background:var(--green-dark);color:#fff}.dbtn.ghost{background:#fff3ba;color:#66520c}.dbtn.hide{display:none}
+.radar-panel{margin-top:10px;padding:14px;border-radius:18px;background:var(--paper);box-shadow:var(--card-shadow);transition:.35s}
+.radar-panel.locked{background:linear-gradient(110deg,var(--green-deep),#173528 55%,var(--green));color:#fff}
+.radar-panel.locked .eyebrow{color:rgba(255,255,255,.55)}.radar-panel.locked .rp-sub{color:rgba(255,255,255,.7)}.radar-panel.locked .rp-title{color:#fff}
+.rp-title{font-size:14px;font-weight:700;margin-top:2px}.rp-sub{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.35}
+.radar-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.radar-stats span{padding:8px;border-radius:12px;background:rgba(255,255,255,.1);text-align:center}
+.radar-stats b{display:block;font-size:17px;font-weight:800}.radar-stats small{font-size:9px;opacity:.65;font-weight:700;text-transform:uppercase}
+.radar-panel:not(.locked) .radar-stats span{background:#f4f7f5}.radar-panel:not(.locked) .radar-stats b{color:var(--green-dark)}
+.sim-panel{margin-top:10px;padding:14px;border-radius:18px;background:var(--paper);box-shadow:var(--card-shadow)}
+.sim-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.sim-toggle{font-size:10px;font-weight:700;color:var(--green-dark);background:#eef5f1;padding:7px 10px;border-radius:99px;display:flex;align-items:center;gap:5px}
+.sim-sliders{margin-top:10px;display:grid;gap:8px}
+.sim-sliders label{display:grid;gap:4px;padding:8px 10px;background:#f4f7f5;border-radius:12px;font-size:11px;color:var(--muted)}
+.sim-sliders label b{color:var(--green-dark);float:right}.sim-sliders input{width:100%;accent-color:var(--green)}
+.live-monitor{margin-top:10px;padding:14px;border-radius:18px;background:var(--ink);color:#fff;box-shadow:0 14px 34px rgba(16,42,28,.13)}
+.live-monitor .eyebrow{color:rgba(255,255,255,.4);margin-bottom:2px}
+.lm-title{font-size:13px;font-weight:700;margin-bottom:2px}.lm-sub{font-size:9px;color:rgba(255,255,255,.45);line-height:1.4}
+.live-sensors{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-top:10px}
+.live-sensors div{padding:6px 4px;background:rgba(255,255,255,.06);border-radius:8px;text-align:center}
+.live-sensors div.peak{background:rgba(83,227,141,.14);box-shadow:inset 0 0 0 1px rgba(83,227,141,.25)}
+.live-sensors span{font-size:7px;font-weight:800;color:rgba(255,255,255,.4);display:block}
+.live-sensors i{display:block;height:3px;background:rgba(255,255,255,.1);border-radius:99px;margin:4px 0;overflow:hidden}
+.live-sensors i b{display:block;height:100%;background:linear-gradient(90deg,#53e38d,var(--gold));border-radius:99px;transition:width .25s}
+.live-sensors strong{font-size:11px;font-weight:800}
+.lm-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;font-size:8px;color:rgba(255,255,255,.36)}
+.lm-meta b{display:block;color:#fff;font-size:10px;font-weight:700}
+.hero-strike{margin-top:10px;padding:16px;border-radius:22px;background:linear-gradient(135deg,var(--green-dark) 0%,#137647 52%,var(--green-deep) 100%);color:#fff;position:relative;overflow:hidden}
+.hero-strike::before{content:'';position:absolute;width:300px;height:300px;border:1px solid rgba(255,255,255,.08);border-radius:50%;right:-120px;top:-120px}
+.live-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:99px;background:rgba(255,255,255,.12);font-size:9px;font-weight:700;letter-spacing:.12em}
+.live-chip i{width:6px;height:6px;background:#7ef0aa;border-radius:50%;box-shadow:0 0 0 4px rgba(126,240,170,.12)}
+.hero-kicker{font-size:9px;font-weight:700;letter-spacing:.14em;color:rgba(255,255,255,.6);margin-top:10px}
+.hero-carry{font-size:52px;font-weight:900;letter-spacing:-.06em;line-height:1}
+.hero-carry span{font-size:16px;opacity:.65;margin-left:6px;font-weight:700}
+.hero-headline{font-size:18px;font-weight:700;margin-top:6px}.hero-note{font-size:12px;color:rgba(255,255,255,.62);margin-top:4px}
+.hero-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px;position:relative;z-index:1}
+.hero-metrics div{padding:10px;background:rgba(255,255,255,.09);border-radius:12px}
+.hero-metrics span{font-size:9px;color:rgba(255,255,255,.55);display:block;margin-bottom:2px}
+.hero-metrics b{font-size:16px;font-weight:800}.hero-metrics small{font-size:9px;opacity:.55;margin-left:2px}
+.summary-card{margin-top:10px;padding:16px;border-radius:22px;background:var(--paper);box-shadow:var(--card-shadow);display:flex;flex-direction:column;align-items:center}
+.sum-head{width:100%;display:flex;justify-content:space-between;font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--eyebrow)}
+.sum-trend{color:var(--green);letter-spacing:0}
+.score-ring{width:130px;height:130px;margin:12px auto;display:grid;place-items:center;border-radius:50%;position:relative;transition:background .4s}
+.score-ring::before{content:'';width:108px;height:108px;position:absolute;border-radius:50%;background:#fff}
+.score-ring div{text-align:center;z-index:1}.score-ring b{font-size:42px;font-weight:900;letter-spacing:-.05em;color:var(--ink)}.score-ring span{font-size:11px;font-weight:700;color:var(--green)}
+.sum-grid{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin-top:8px}
+.sum-grid span{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:grid;gap:1px}
+.sum-grid b{font-size:15px;font-weight:800;color:var(--green-dark);text-transform:none;letter-spacing:0}
+.sum-foot{width:100%;display:flex;justify-content:space-between;padding-top:10px;margin-top:6px;border-top:1px solid #edf0ee;font-size:11px;color:var(--muted)}.sum-foot b{color:var(--ink)}
+.path-panel{margin-top:10px;padding:14px;border-radius:18px;background:var(--paper);box-shadow:var(--card-shadow)}
+.path-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px}
+.path-badge{font-size:10px;font-weight:700;color:var(--green)}.path-badge.off{color:var(--muted)}.path-svg{width:100%;height:120px;display:block}
+.grade-panel{margin-top:10px;padding:14px;border-radius:18px;background:var(--paper);box-shadow:var(--card-shadow)}
+.grade-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.grade-item{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:8px;padding:10px;background:#f5f7f6;border-radius:12px}
+.letter{width:32px;height:32px;display:grid;place-items:center;border-radius:9px;font-size:15px;font-weight:900}
+.grade-item b{font-size:11px}.grade-item small{font-size:8px;color:var(--muted);display:block}.grade-item strong{font-size:11px;color:#849088;font-weight:700}
+.compare-panel{margin-top:10px;padding:14px;border-radius:18px;background:linear-gradient(110deg,#f7f0e1,#fff 45%);box-shadow:var(--card-shadow)}
+.compare-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:10px}
+.cmp-btn{padding:8px 4px;border:1px solid #ebefec;border-radius:12px;background:rgba(255,255,255,.75);font-size:9px;font-weight:700;color:var(--ink);font-family:inherit;text-align:center;line-height:1.3}
+.cmp-btn.on{color:var(--green-dark);background:#e8f6ee;border-color:rgba(28,156,94,.24)}
+.impact-panel{margin-top:10px;padding:14px;border-radius:18px;background:var(--paper);box-shadow:var(--card-shadow)}
+.club-picker{display:flex;gap:3px;padding:3px;background:#f2f5f3;border-radius:99px;margin-top:8px}
+.club-picker button{padding:6px 10px;border:0;border-radius:99px;font-size:10px;font-weight:700;color:var(--muted);background:transparent;font-family:inherit}
+.club-picker button.on{color:var(--green-dark);background:#fff;box-shadow:0 2px 8px rgba(20,57,38,.08)}
+.heat-wrap{display:grid;grid-template-columns:16px 1fr 16px;align-items:center;gap:6px;margin-top:12px;padding:12px;background:#f1f6f3;border-radius:16px}
+.heat-side{font-size:7px;font-weight:800;color:#819087;writing-mode:vertical-rl;letter-spacing:.12em}.heat-side.heel{transform:rotate(180deg)}
+.heat-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,48px);gap:6px}
+.heat-cell{border-radius:10px;display:flex;align-items:flex-end;justify-content:space-between;padding:6px 8px;transition:.35s}
+.heat-cell small{font-size:8px;font-weight:800;color:rgba(23,34,28,.5)}.heat-cell.impact{transform:scale(1.04);z-index:1;position:relative}
+.impact-row{display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid #edf0ee}
+.impact-icon{width:32px;height:32px;border-radius:50%;background:#e8f6ee;color:var(--green-dark);display:grid;place-items:center;font-weight:800;font-size:14px}
+.coach-card{margin-top:10px;padding:14px;border-radius:18px;background:linear-gradient(145deg,#f7f0e1,#fbf8ef);box-shadow:var(--card-shadow)}
+.coach-icon{width:36px;height:36px;border-radius:12px;background:var(--profile);display:grid;place-items:center;font-size:18px;margin-bottom:8px}
+.coach-card .eyebrow{color:#9a8341}.coach-card h2{font-size:16px;font-weight:700;margin-top:4px}.coach-card p{font-size:12px;color:#68736c;line-height:1.55;margin-top:8px}
+.hist{margin-top:10px;padding:0;margin-bottom:28px}
+.hrow{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #f1f1f1;animation:slidein .35s ease}
+.hrow:last-child{border-bottom:0}
+@keyframes slidein{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.gbadge{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0}
+.hrow-meta{font-size:10px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
+.hrow-main{flex:1;min-width:0}.hrow-main b{font-size:13px;font-weight:600;display:block}
+
+/* ---------- progress ---------- */
+.spark{height:92px;display:flex;align-items:flex-end;gap:7px;padding:0 2px}
+.spark i{flex:1;background:var(--green);border-radius:5px 5px 0 0;opacity:.85;
+  transition:height .6s cubic-bezier(.4,0,.2,1)}
+
+/* ---------- play / club ---------- */
+.prog{height:6px;border-radius:99px;background:#ececec;overflow:hidden;margin-top:9px}
+.prog i{display:block;height:100%;background:var(--green)}
+.lb{display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid #f2f2f2}
+.lb:last-child{border-bottom:0}
+.lb.me{background:#f0f8f3}
+.rank{width:22px;font-weight:800;color:var(--muted);font-size:13px}
+.tro{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.tro div{aspect-ratio:1;border-radius:16px;display:grid;place-items:center;gap:4px;
+  background:var(--paper);color:var(--muted);font-size:22px;border:1px solid #e6e6e6;opacity:.65}
+.tro div.got{background:#fff8e0;color:#caa62a;box-shadow:var(--card-shadow);border-color:rgba(245,212,51,.45);opacity:1}
+.tro small{display:block;font-size:8.5px;text-align:center;font-weight:700;line-height:1.1;padding:0 2px}
+
+/* ---------- clubhouse ---------- */
+.club-head{display:flex;align-items:center;gap:12px}
+.club-avatar{width:56px;height:56px;border-radius:50%;background:#e8f6ee;display:grid;place-items:center;
+  font-size:20px;font-weight:800;color:var(--green-dark);box-shadow:0 0 0 2px var(--green);flex-shrink:0}
+.club-xp{width:64px;height:64px;border-radius:50%;background:var(--paper);display:grid;place-items:center;
+  box-shadow:0 0 0 4px rgba(245,212,51,.35);flex-shrink:0;text-align:center}
+.club-xp span{font-size:9px;font-weight:700;color:var(--muted);display:block}
+.club-xp b{font-size:17px;font-weight:800;color:var(--gold)}
+.xp-bar{height:5px;border-radius:99px;background:#ebebeb;overflow:hidden;margin-top:12px}
+.xp-bar i{display:block;height:100%;background:var(--gold);border-radius:99px;width:48%}
+.club-bio{font-size:12px;color:var(--muted);line-height:1.45;margin-top:10px}
+.club-stats{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.club-stats span{font-size:11px;font-weight:700;padding:5px 10px;border-radius:99px;background:#e8f6ee;color:var(--green-dark)}
+.club-stats span.dim{background:var(--cream);color:var(--ink)}
+.bag-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.bag-chip{font-size:11px;font-weight:700;text-align:center;padding:10px 6px;border-radius:12px;
+  background:var(--paper);border:1px solid #e6e6e6;color:var(--ink);line-height:1.2}
+.friend-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0}
+.friend-row:last-child{border-bottom:0}
+.friend-av{width:40px;height:40px;border-radius:50%;background:#ebebeb;display:grid;place-items:center;
+  font-size:15px;font-weight:800;color:var(--ink);flex-shrink:0}
+.friend-row b.score{font-size:17px;font-weight:800;color:var(--green-dark);margin-left:auto}
+.lb-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.scope-toggle{display:flex;gap:6px}
+.scope-btn{font-size:11px;font-weight:700;padding:6px 12px;border-radius:99px;border:1px solid #e6e6e6;
+  background:var(--paper);color:var(--muted);font-family:inherit;cursor:default}
+.scope-btn.on{background:#e8f6ee;color:var(--green);border-color:var(--green)}
+.lb-panel{display:none}
+.lb-panel.on{display:block}
+.lb-row{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px}
+.lb-row .rank{width:18px;font-size:12px;font-weight:800;color:var(--muted)}
+.lb-row .name{font-weight:600;flex:1}
+.lb-row .you{font-size:9px;font-weight:800;color:var(--green);background:#e8f6ee;padding:2px 6px;border-radius:99px}
+.lb-row .ver{font-size:10px;color:var(--muted)}
+.lb-row .pts{font-size:17px;font-weight:800;color:var(--ink)}
+.lb-row.me{background:#f0f8f3;margin:0 -14px;padding:6px 14px;border-radius:10px}
+.lb-foot{font-size:10px;color:var(--muted);line-height:1.4;margin-top:6px}
+.club-group{padding:14px;border-radius:18px;background:var(--paper);box-shadow:var(--card-shadow);margin-top:8px}
+.club-group b{font-size:14px;font-weight:700;display:block}
+.club-group span{font-size:12px;color:var(--muted);margin-top:4px;display:block}
+.chal-teaser{padding:14px 16px;border-radius:18px;background:rgba(245,212,51,.12);border:1px solid rgba(245,212,51,.35);margin-top:14px}
+.chal-teaser .eyebrow{color:#9a8341}
+.chal-teaser b{font-size:15px;font-weight:700;display:block;margin-top:4px}
+.chal-teaser span{font-size:12px;color:var(--muted);margin-top:4px;display:block}
+.device-row{display:flex;align-items:center;justify-content:space-between}
+.device-row b{font-size:14px;font-weight:700}
+.device-status{font-size:11px;font-weight:700;color:var(--green)}
+.device-status.off{color:var(--muted)}
+.device-sub{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4}
+.device-link{font-size:11px;font-weight:700;color:var(--green-dark);margin-top:8px;display:inline-block}
+.club-links{margin-top:14px}
+.club-link{display:flex;align-items:center;padding:14px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:var(--ink)}
+.club-link:last-child{border-bottom:0}
+.club-link span{color:var(--muted);font-size:20px;margin-left:auto}
+.club-sect{margin-top:16px}
+.club-sect:first-of-type{margin-top:14px}
+
+/* ---------- overlays (login, setup, profile, settings) ---------- */
+.overlay{position:absolute;inset:54px 0 0 0;background:var(--cream);z-index:50;opacity:0;pointer-events:none;visibility:hidden;transition:opacity .32s ease;overflow:hidden}
+.overlay.on{opacity:1;pointer-events:auto;visibility:visible}
+.ov-scroll{height:100%;overflow:hidden;padding:16px 18px 24px;transition:transform .7s cubic-bezier(.4,0,.2,1)}
+.ov-bar{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid #edf0ee;background:var(--cream);position:relative;z-index:2}
+.ov-bar button{border:0;background:none;font-size:14px;font-weight:700;color:var(--green-dark);font-family:inherit;padding:0}
+.ov-bar .title{flex:1;text-align:center;font-size:15px;font-weight:700;color:var(--ink)}
+.ov-bar .right{width:56px;text-align:right;font-size:14px;font-weight:700;color:var(--green)}
+
+.login-hero{height:180px;border-radius:22px;padding:20px;display:flex;flex-direction:column;justify-content:flex-end;
+  background:linear-gradient(135deg,var(--green-deep),var(--green));color:#fff}
+.login-hero b{font-size:32px;font-weight:900;letter-spacing:-.5px}
+.login-card{margin-top:16px;padding:18px}
+.mode-chips{display:flex;gap:8px;padding:4px;background:#f0f0f0;border-radius:12px;margin-bottom:14px}
+.mode-chip{flex:1;padding:10px;border:0;border-radius:8px;font-size:12px;font-weight:700;font-family:inherit;background:transparent;color:var(--muted)}
+.mode-chip.on{background:#fff;color:var(--green)}
+.field-label{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;display:block}
+.field-input{width:100%;padding:12px;border:0;border-radius:12px;background:var(--cream);font-size:14px;font-family:inherit;color:var(--ink)}
+.field-block{margin-bottom:14px}
+.apple-btn{width:100%;height:48px;border-radius:99px;background:#000;color:#fff;font-size:14px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;font-family:inherit;border:0}
+.legal-foot{text-align:center;margin-top:14px;font-size:11px;color:var(--muted);line-height:1.5}
+.legal-links{font-size:11px;font-weight:700;color:var(--green-dark);margin-top:8px}
+.or-divider{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--muted);font-size:12px}
+.or-divider i{flex:1;height:1px;background:#e0e0e0;display:block}
+
+.setup-skill{display:flex;align-items:center;padding:12px;border-radius:12px;background:var(--cream);margin-top:8px;font-size:14px;font-weight:600;color:var(--ink)}
+.setup-skill.on{background:#e8f6ee;color:var(--green-dark)}
+.setup-skill span{margin-left:auto;color:var(--green);font-size:16px}
+.bag-pick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.bag-pick button{padding:12px;border:0;border-radius:12px;font-size:12px;font-weight:700;font-family:inherit;background:var(--cream);color:var(--ink)}
+.bag-pick button.on{background:var(--green);color:#fff}
+
+.prof-head{display:flex;gap:14px;align-items:flex-start}
+.prof-av{width:72px;height:72px;border-radius:50%;background:var(--profile);display:grid;place-items:center;font-size:26px;font-weight:800;flex-shrink:0}
+.prof-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;text-align:center}
+.prof-stats b{font-size:17px;font-weight:800;color:var(--ink)}
+.prof-stats span{font-size:10px;color:var(--muted);display:block;margin-top:2px}
+.prof-badges{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.prof-badges span{font-size:11px;font-weight:700;padding:6px 10px;border-radius:99px;background:#e8f6ee;color:var(--green-dark)}
+.prof-tabs{display:flex;gap:4px;padding:4px;background:#f0f0f0;border-radius:99px;margin-top:14px}
+.prof-tab{flex:1;padding:10px;border:0;border-radius:99px;font-size:11px;font-weight:700;font-family:inherit;background:transparent;color:var(--muted)}
+.prof-tab.on{background:#fff;color:var(--green-dark);box-shadow:0 2px 8px rgba(20,57,38,.08)}
+.act-row{padding:14px;margin-top:10px}
+.act-row b{font-size:14px;font-weight:700}
+.act-row .score{font-size:22px;font-weight:900;color:var(--green-dark);margin-left:auto}
+
+.set-section{margin-top:18px}
+.set-section > .h2{margin-bottom:10px}
+.set-row{display:flex;align-items:center;padding:14px;border-bottom:1px solid #f0f0f0;font-size:14px}
+.set-row:last-child{border-bottom:0}
+.set-toggle{display:flex;align-items:center;justify-content:space-between;padding:14px}
+.set-toggle small{font-size:11px;color:var(--muted);display:block;margin-top:2px}
+.toggle-sw{width:44px;height:26px;border-radius:99px;background:var(--green);position:relative;flex-shrink:0}
+.toggle-sw::after{content:'';position:absolute;width:22px;height:22px;border-radius:50%;background:#fff;top:2px;right:2px;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.set-danger{color:var(--danger);font-weight:700}
+
+.chal-hero{padding:16px;border-radius:18px;background:rgba(245,212,51,.12);border:1px solid rgba(245,212,51,.35);margin-top:14px}
+.chal-hero .eyebrow{color:#9a8341}
+.chal-card{padding:14px;margin-top:10px}
+.chal-card .type{font-size:10px;font-weight:800;color:var(--green);background:#e8f6ee;padding:3px 8px;border-radius:99px}
+.chal-card .stake{font-size:11px;color:var(--gold);margin-top:6px;font-weight:600}
+.chal-meta{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:8px}
+.chal-types{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.chal-type{font-size:11px;font-weight:700;text-align:center;padding:12px 6px;border-radius:12px;background:var(--paper);box-shadow:var(--card-shadow)}
+.cta-outline{width:100%;padding:14px;border:0;border-radius:99px;background:#e8f6ee;color:var(--green-dark);font-size:14px;font-weight:700;font-family:inherit;margin-top:10px}
+
+.prog-cards{display:flex;gap:10px;margin-top:14px}
+.prog-card{flex:1;text-align:center;padding:18px 8px;border-radius:22px;background:var(--paper);box-shadow:var(--card-shadow)}
+.prog-card b{font-size:26px;font-weight:900;color:var(--green-dark);display:block}
+.prog-card span{font-size:11px;color:var(--muted);margin-top:4px;display:block}
+.sess-row{display:flex;align-items:center;gap:12px;padding:14px;margin-top:10px}
+.sess-icon{width:44px;height:44px;border-radius:50%;background:#e8f6ee;display:grid;place-items:center;font-size:18px;flex-shrink:0}
+.sess-detail{padding:16px;margin-top:10px}
+.sess-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.sess-stat b{font-size:16px;font-weight:800;color:var(--green-dark);display:block}
+.sess-stat span{font-size:9px;color:var(--muted)}
+
+/* ---------- tab bar ---------- */
+.tabbar{position:absolute;left:14px;right:14px;bottom:22px;height:66px;border-radius:26px;
+  background:rgba(255,255,255,.94);backdrop-filter:blur(18px);box-shadow:0 10px 30px rgba(20,56,38,.14);
+  display:flex;align-items:center;z-index:30}
+.tab{flex:1;text-align:center;color:#a8b0ac;font-size:10px;font-weight:700;transition:color .25s}
+.tab svg{display:block;margin:0 auto 3px;width:21px;height:21px;stroke-width:2;
+  fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round}
+.tab.on{color:var(--green-dark)}
+
+/* ---------- touch + captions ---------- */
+#touch{position:absolute;width:44px;height:44px;border-radius:50%;
+  background:rgba(23,33,28,.16);border:2px solid rgba(23,33,28,.28);
+  margin:-22px 0 0 -22px;opacity:0;z-index:60;pointer-events:none;
+  transition:left .45s cubic-bezier(.4,0,.2,1),top .45s cubic-bezier(.4,0,.2,1),opacity .18s}
+#touch.tap{animation:tap .35s ease}
+@keyframes tap{0%{transform:scale(1)}45%{transform:scale(.68)}100%{transform:scale(1)}}
+
+#caption{position:absolute;left:0;right:0;bottom:110px;text-align:center;z-index:50;
+  opacity:0;transition:opacity .4s}
+#caption span{display:inline-block;padding:9px 18px;border-radius:99px;
+  background:rgba(15,30,22,.9);color:#fff;font-size:14px;font-weight:600;letter-spacing:-.1px}
+#caption.on{opacity:1}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="phone">
+    <div class="statusbar">
+      <span>9:41</span>
+      <span class="icons">
+        <span class="bars"><i></i><i></i><i></i><i></i></span>
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="#17211c" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2a10 10 0 0 1 14 0"/><path d="M3.6 6.8a6.4 6.4 0 0 1 8.8 0"/><circle cx="8" cy="9.8" r="1.1" fill="#17211c" stroke="none"/></svg>
+        <span class="batt"><span></span></span>
+      </span>
+    </div>
+
+    <div class="screens">
+      <!-- ============ HOME ============ -->
+      <section class="screen on" id="s-home"><div class="scroller" id="sc-home">
+        <div class="row" style="gap:12px">
+          <div class="avatar">C</div>
+          <div class="stack grow">
+            <span class="cap">Ready to dial in your strike?</span>
+            <span class="h2" style="font-size:20px">Carmi</span>
+          </div>
+          <span class="pill" id="matpill">Mat off</span>
+        </div>
+
+        <div class="hero mt">
+          <b>Clubhouse</b>
+          <span style="font-size:12px;opacity:.82;margin-top:5px">Friends · leaderboards · your golf crew</span>
+          <span style="font-size:12px;font-weight:700;color:var(--gold);margin-top:6px">Open Clubhouse →</span>
+        </div>
+
+        <div class="chips mt">
+          <div class="chip"><b id="hs-score">76</b><span>Strike score</span></div>
+          <div class="chip"><b id="hs-center">54%</b><span>Center</span></div>
+          <div class="chip"><b id="hs-clean">68%</b><span>Clean</span></div>
+        </div>
+
+        <button class="cta mt" id="sessionbtn">Start Session</button>
+
+        <div class="card mt" style="padding:16px">
+          <span class="eyebrow">PUTTING SNAPSHOT</span>
+          <div class="h2" style="margin-top:6px">8/12 made · 12 ft</div>
+          <div class="cap" style="margin-top:3px">Line accuracy 82% — tap Practice Lab to work it.</div>
+          <div class="bar"><i style="width:82%"></i></div>
+        </div>
+
+        <div class="h2 mt">Quick reads</div>
+        <div class="card" style="margin-top:10px">
+          <div class="insight"><span class="tick" style="background:var(--gold)"></span>
+            <div class="stack"><span style="font-size:14px;font-weight:600">Fix this next: heel contact on irons</span>
+            <span class="cap">Shows up most on your 7 iron</span></div></div>
+        </div>
+        <div class="card" style="margin-top:10px">
+          <div class="insight"><span class="tick" style="background:var(--green)"></span>
+            <div class="stack"><span style="font-size:14px;font-weight:600">Active: Center Strike Streak</span>
+            <span class="cap">6 of 20 shots</span></div></div>
+        </div>
+        <div class="card" style="margin-top:10px">
+          <div class="insight"><span class="tick" style="background:#3b82f6"></span>
+            <div class="stack"><span style="font-size:14px;font-weight:600">Best club: 7 Iron</span>
+            <span class="cap">84 avg · trending up</span></div></div>
+        </div>
+
+        <div class="photos mt" style="padding-bottom:24px">
+          <div style="background:var(--green-deep)">Course prep</div>
+          <div style="background:var(--green)">Practice Lab</div>
+          <div style="background:#26472f">Strike ref</div>
+        </div>
+      </div></section>
+
+      <!-- ============ PRACTICE / STRIKE LAB ============ -->
+      <section class="screen" id="s-practice"><div class="scroller" id="sc-practice">
+        <div class="pr-top">
+          <span class="brand-mark" aria-hidden="true">⛳</span>
+          <span class="grow" style="font-size:13px;font-weight:800;color:var(--green-dark);letter-spacing:.08em">fairLie</span>
+          <div class="avatar" style="width:36px;height:36px;font-size:14px">C</div>
+          <span class="streak">12 day streak</span>
+        </div>
+        <div class="welcome-row">
+          <div>
+            <p class="eyebrow" id="pr-date">THURSDAY · SEP 10</p>
+            <h1>Good afternoon, Carmi.</h1>
+            <p>Ready to dial in your next shot?</p>
+          </div>
+          <button class="session-pill" id="sess-pill">＋ Start session</button>
+        </div>
+        <div class="active-session" id="active-sess">
+          <div class="sess-head"><span class="rec"></span><div><p class="eyebrow">SESSION IN PROGRESS</p><h2 id="sess-club">7 Iron practice</h2></div></div>
+          <div class="sess-stats">
+            <div><span>swings</span><b id="ss-swings">0</b></div>
+            <div><span>avg score</span><b id="ss-avg">—</b></div>
+            <div><span>best yds</span><b id="ss-best">—</b></div>
+            <div><span>avg ball</span><b id="ss-ball">—</b></div>
+            <div><span>smash</span><b id="ss-smash">—</b></div>
+            <div><span>radar</span><b id="ss-radar">—</b></div>
+          </div>
+          <button class="sess-finish" id="sess-finish">Finish &amp; save</button>
+        </div>
+        <div class="workflow" id="workflow">
+          <div class="wf-step active" data-step="session"><i>1</i><span>Session</span></div>
+          <div class="wf-step" data-step="connect"><i>2</i><span>Connect</span></div>
+          <div class="wf-step" data-step="zero"><i>3</i><span>Zero</span></div>
+          <div class="wf-step" data-step="init"><i>4</i><span>Initialize</span></div>
+          <div class="wf-step" data-step="strike"><i>5</i><span>Strike</span></div>
+        </div>
+        <div class="dock" id="mat-dock">
+          <div class="dock-head"><span class="dock-pulse" id="mat-pulse"></span><div class="grow"><p class="eyebrow">MAT ESP · FSR / SWING</p><div class="dock-title" id="mat-title">Initialize a session</div><div class="dock-sub" id="mat-sub">Pick mat COM / BLE — radar uses a separate board</div></div></div>
+          <div class="dock-actions" id="mat-actions">
+            <button class="dbtn primary" id="btn-mat-ble">Mat BLE</button>
+            <button class="dbtn hide" id="btn-zero">Zero sensors</button>
+            <button class="dbtn dark hide" id="btn-init">Initialize swing</button>
+            <button class="dbtn hide" id="btn-disc">Disconnect</button>
+            <button class="dbtn hide" id="btn-clear">Clear to zero</button>
+            <button class="dbtn ghost hide" id="btn-test">Test swing</button>
+          </div>
+        </div>
+        <div class="dock" id="radar-dock">
+          <div class="dock-head"><span class="dock-pulse" id="radar-pulse"></span><div class="grow"><p class="eyebrow">RADAR ESP · XM125</p><div class="dock-title" id="radar-dock-title">Connect radar ESP</div><div class="dock-sub" id="radar-dock-sub">Flash radar_esp, then connect on second COM port</div></div></div>
+          <div class="dock-actions"><button class="dbtn primary" id="btn-radar">Connect Radar USB</button></div>
+        </div>
+        <div class="radar-panel" id="radar-panel">
+          <p class="eyebrow">XM125 RADAR · SEPARATE ESP</p>
+          <div class="rp-title" id="rp-title">Radar ESP not connected</div>
+          <div class="rp-sub" id="rp-sub">Connect Radar USB on the second COM port for ball speed.</div>
+          <div class="radar-stats" id="radar-stats" style="display:none">
+            <span><b id="rad-mph">—</b><small>mph</small></span>
+            <span><b id="rad-mm">—</b><small>mm</small></span>
+            <span><b id="rad-intra">—</b><small>intra</small></span>
+          </div>
+        </div>
+        <div class="sim-panel">
+          <div><p class="eyebrow">SWING SIMULATOR</p><div class="h2" style="font-size:15px">Below-average mid-handicap swings</div><div class="cap" style="margin-top:3px">Randomize or nudge sliders — live track updates every panel.</div></div>
+          <div class="sim-actions">
+            <label class="sim-toggle"><input type="checkbox" id="sim-live" checked> Live track</label>
+            <button class="dbtn" id="btn-random">Randomize</button>
+            <button class="dbtn primary" id="btn-sim">Simulate swing</button>
+          </div>
+          <div class="sim-sliders">
+            <label>Ball speed <b id="sl-ball">108 mph</b><input type="range" id="rng-ball" min="50" max="180" value="108"></label>
+            <label>Club speed <b id="sl-club">78 mph</b><input type="range" id="rng-club" min="40" max="130" value="78"></label>
+            <label>Attack angle <b id="sl-aoa">-2.1°</b><input type="range" id="rng-aoa" min="-12" max="8" step="0.1" value="-2.1"></label>
+            <label>Swing path <b id="sl-path">-4.2°</b><input type="range" id="rng-path" min="-12" max="12" step="0.1" value="-4.2"></label>
+            <label>Impact quality <b id="sl-q">62</b><input type="range" id="rng-q" min="20" max="100" value="62"></label>
+          </div>
+        </div>
+        <div class="live-monitor" id="live-mon">
+          <p class="eyebrow">LIVE READINGS</p>
+          <div class="lm-title" id="lm-title">Waiting for a device</div>
+          <div class="lm-sub" id="lm-sub">Connect mat ESP + radar ESP, or use the simulator</div>
+          <div class="live-sensors" id="live-sensors"></div>
+          <div class="lm-meta"><span><b id="lm-peak">0</b>peak</span><span><b id="lm-sensor">—</b>sensor</span><span><b id="lm-state">Idle</b>state</span></div>
+        </div>
+        <div class="hero-strike" id="hero-strike">
+          <span class="live-chip" id="hero-chip"><i></i> STRIKE LAB</span>
+          <p class="hero-kicker">LAST STRIKE</p>
+          <div class="hero-carry" id="hero-carry">—<span>yds</span></div>
+          <div class="hero-headline" id="hero-headline">Waiting.</div>
+          <div class="hero-note" id="hero-note">Take a swing to see carry, speed, and contact.</div>
+          <div class="hero-metrics">
+            <div><span>Club speed</span><b id="hm-club">—<small>mph</small></b></div>
+            <div><span>Ball speed</span><b id="hm-ball">—<small>mph</small></b></div>
+            <div><span>Smash</span><b id="hm-smash">—</b></div>
+            <div><span>Attack</span><b id="hm-aoa">—<small>°</small></b></div>
+            <div><span>Path</span><b id="hm-path">—<small>°</small></b></div>
+            <div><span>Radar</span><b id="hm-radar">—</b></div>
+          </div>
+        </div>
+        <div class="summary-card" id="summary-card">
+          <div class="sum-head"><span>STRIKE SUMMARY</span><span class="sum-trend" id="sum-trend">—</span></div>
+          <div class="score-ring" id="score-ring"><div><b id="sum-score">—</b><span id="sum-label">Building</span></div></div>
+          <div class="sum-grid">
+            <span><b id="sg-carry">—</b>carry yds</span><span><b id="sg-ball">—</b>ball mph</span>
+            <span><b id="sg-club">—</b>club mph</span><span><b id="sg-smash">—</b>smash</span>
+            <span><b id="sg-aoa">—</b>attack</span><span><b id="sg-path">—</b>path</span>
+            <span><b id="sg-hct">—</b>H/C/T</span><span><b id="sg-radar">—</b>radar mph</span>
+          </div>
+          <div class="sum-foot"><span>Impact</span><b id="sg-impact">Waiting</b></div>
+        </div>
+        <div class="path-panel">
+          <div class="path-head"><div><p class="eyebrow">3D SWING PATH</p><div class="h2" style="font-size:15px">Tracked club-head arc</div></div><span class="path-badge off" id="path-badge">Idle</span></div>
+          <svg class="path-svg" id="path-svg" viewBox="0 0 360 120" aria-hidden="true"><path id="path-arc" d="M20,95 Q180,10 340,70" fill="none" stroke="#1c9c5e" stroke-width="3" stroke-dasharray="6 4" opacity=".45"/><circle id="path-dot" cx="20" cy="95" r="7" fill="#f5d433" stroke="#fff" stroke-width="2"/></svg>
+        </div>
+        <div class="grade-panel" id="grade-panel">
+          <p class="eyebrow">STRIKE GRADES</p><div class="h2" style="font-size:15px;margin-top:2px" id="grade-heading">Take a swing to grade it</div>
+          <div class="grade-grid" id="grade-grid"></div>
+        </div>
+        <div class="compare-panel">
+          <p class="eyebrow">COMPARE CONTACT</p><div class="h2" style="font-size:15px;margin-top:2px">What different swings look like</div>
+          <div class="compare-grid">
+            <button class="cmp-btn" data-preset="perfect">Perfect</button>
+            <button class="cmp-btn" data-preset="heel">Heel</button>
+            <button class="cmp-btn" data-preset="toe">Toe</button>
+            <button class="cmp-btn" data-preset="thin">Thin</button>
+            <button class="cmp-btn" data-preset="random">Random</button>
+          </div>
+        </div>
+        <div class="impact-panel" id="impact-panel">
+          <p class="eyebrow">IMPACT ANALYSIS</p><div class="h2" style="font-size:15px;margin-top:2px">Where you struck it</div>
+          <div class="club-picker" id="club-picker"><button class="on" data-club="Driver">Driver</button><button data-club="7 Iron">7 Iron</button><button data-club="PW">PW</button></div>
+          <p class="eyebrow" style="margin-top:12px">LIVE PRESSURE MAP</p>
+          <div class="heat-wrap">
+            <span class="heat-side heel">HEEL</span>
+            <div class="heat-grid" id="heat-grid"></div>
+            <span class="heat-side">TOE</span>
+          </div>
+          <div class="impact-row"><span class="impact-icon">✓</span><div><b id="impact-name">Waiting for strike</b><p class="cap" id="impact-hct" style="margin-top:2px">0% heel · 0% center · 0% toe</p></div></div>
+        </div>
+        <div class="coach-card">
+          <div class="coach-icon">✦</div>
+          <p class="eyebrow">COACH'S NOTE</p>
+          <h2 id="coach-title">Take a swing to coach it.</h2>
+          <p id="coach-copy">Connect the mat ESP and radar ESP, or use the simulator to populate the lab.</p>
+        </div>
+        <div class="h2" style="margin-top:14px">This session</div>
+        <div class="card hist" id="hist"><div class="hrow"><span class="cap grow">No swings yet</span></div></div>
+      </div></section>
+
+      <!-- ============ PLAY / CHALLENGES ============ -->
+      <section class="screen" id="s-play"><div class="scroller" id="sc-play">
+        <div class="h1">Challenges</div>
+        <p class="cap" style="margin-top:4px">Compete on skill, not just volume.</p>
+
+        <div class="chal-hero">
+          <span class="eyebrow">YOUR TURN</span>
+          <b>Center Strike Streak</b>
+          <span>6/20 shots remaining</span>
+        </div>
+
+        <div class="h2 mt">Active</div>
+        <div class="card chal-card">
+          <div class="row"><span class="h2 grow" style="font-size:15px">Center Strike Streak</span><span class="chal-card type">Center Strike</span></div>
+          <div class="prog"><i style="width:30%"></i></div>
+          <div class="chal-meta"><span>6/20</span><span>1 golfer</span></div>
+        </div>
+        <div class="card chal-card">
+          <div class="row"><span class="h2 grow" style="font-size:15px">7 Iron Club Battle</span><span class="chal-card type">Club Battle</span></div>
+          <div class="prog"><i style="width:0%"></i></div>
+          <div class="chal-meta"><span>0/15</span><span>4 golfers</span></div>
+          <div class="stake">50 XP · Bragging rights</div>
+        </div>
+        <div class="card chal-card">
+          <div class="row"><span class="h2 grow" style="font-size:15px">Ghost Mode — Beat your best</span><span class="chal-card type">Ghost Mode</span></div>
+          <div class="prog"><i style="width:60%"></i></div>
+          <div class="chal-meta"><span>12/20</span><span>1 golfer</span></div>
+        </div>
+
+        <div class="h2 mt">Upcoming</div>
+        <div class="card chal-card">
+          <div class="row"><span class="h2 grow" style="font-size:15px">Fairway Finder</span><span class="chal-card type">Fairway Finder</span></div>
+          <div class="prog"><i style="width:71%"></i></div>
+          <div class="chal-meta"><span>5/7</span><span>8 golfers</span></div>
+        </div>
+
+        <div class="h2 mt">Challenge types</div>
+        <div class="chal-types">
+          <span class="chal-type">Center Strike</span><span class="chal-type">Consistency</span>
+          <span class="chal-type">Club Battle</span><span class="chal-type">Friend Duel</span>
+          <span class="chal-type">Ghost Mode</span><span class="chal-type">Fairway Finder</span>
+          <span class="chal-type">Wedge Ladder</span><span class="chal-type">9-Shot Matrix</span>
+          <span class="chal-type">Course Prep</span><span class="chal-type">Clubhouse Tournament</span>
+        </div>
+
+        <button class="cta mt">Create Challenge</button>
+        <button class="cta-outline">Join with Code</button>
+
+        <div class="card mt" style="padding:16px;margin-bottom:24px">
+          <div class="h2">Fair play</div>
+          <p class="cap" style="margin-top:6px;line-height:1.45">Ranked boards use verified mat sessions only. Skill brackets keep competition fair.</p>
+        </div>
+      </div></section>
+
+      <!-- ============ PROGRESS ============ -->
+      <section class="screen" id="s-progress"><div class="scroller" id="sc-progress">
+        <span class="eyebrow">PROGRESS</span>
+        <div class="h1" style="margin-top:4px">Your strike trend</div>
+
+        <div class="prog-cards">
+          <div class="prog-card"><b>78</b><span>avg score</span></div>
+          <div class="prog-card"><b>176</b><span>best yds</span></div>
+          <div class="prog-card"><b>48</b><span>sessions</span></div>
+        </div>
+
+        <div class="card mt" style="padding:16px">
+          <span class="eyebrow">SCORE HISTORY</span>
+          <div class="spark mt" id="spark"></div>
+        </div>
+        <p class="cap" style="margin-top:8px;line-height:1.45">Keep sessions going — each saved practice feeds this chart from live mat strikes and simulator swings.</p>
+
+        <span class="eyebrow mt" style="display:block;margin-top:18px">YOUR ACTIVITY</span>
+        <div class="h2" style="margin-top:6px">All sessions</div>
+
+        <div class="card sess-detail mt" id="sess-detail" style="display:none">
+          <div class="row"><div class="grow"><span class="eyebrow">SESSION SUMMARY</span><div class="h2" style="margin-top:4px">7 Iron practice</div><div class="cap">Today, 2:42 PM · 3 swings</div></div>
+            <button class="dbtn" id="sess-close">Close</button></div>
+          <div class="sess-stat-grid">
+            <div class="sess-stat"><b>88</b><span>avg score</span></div>
+            <div class="sess-stat"><b>176 yds</b><span>best carry</span></div>
+            <div class="sess-stat"><b>116</b><span>avg ball</span></div>
+            <div class="sess-stat"><b>124</b><span>best ball</span></div>
+            <div class="sess-stat"><b>82</b><span>avg club</span></div>
+            <div class="sess-stat"><b>1.41</b><span>smash</span></div>
+            <div class="sess-stat"><b>67%</b><span>radar hits</span></div>
+            <div class="sess-stat"><b>-2.8°</b><span>attack</span></div>
+            <div class="sess-stat"><b>33%</b><span>centered</span></div>
+          </div>
+        </div>
+
+        <div class="card sess-row">
+          <div class="sess-icon">⛳</div>
+          <div class="grow"><b>7 Iron practice</b><div class="cap">Today, 2:42 PM · 3 swings</div></div>
+          <div style="text-align:right;margin-right:8px"><b>176 yds</b><div class="cap">best carry</div></div>
+          <b style="font-size:18px;color:var(--green-dark)">88</b><span class="muted" style="margin-left:4px">›</span>
+        </div>
+        <div class="card sess-row">
+          <div class="sess-icon">⛳</div>
+          <div class="grow"><b>Driver practice</b><div class="cap">Sunday, 10:18 AM · 2 swings</div></div>
+          <div style="text-align:right;margin-right:8px"><b>178 yds</b><div class="cap">best carry</div></div>
+          <b style="font-size:18px;color:var(--gold)">72</b><span class="muted" style="margin-left:4px">›</span>
+        </div>
+        <div class="card sess-row" style="margin-bottom:24px">
+          <div class="sess-icon">⛳</div>
+          <div class="grow"><b>PW practice</b><div class="cap">Friday, 4:06 PM · 2 swings</div></div>
+          <div style="text-align:right;margin-right:8px"><b>98 yds</b><div class="cap">best carry</div></div>
+          <b style="font-size:18px;color:var(--danger)">58</b><span class="muted" style="margin-left:4px">›</span>
+        </div>
+      </div></section>
+
+      <!-- ============ CLUB / CLUBHOUSE ============ -->
+      <section class="screen" id="s-club"><div class="scroller" id="sc-club">
+        <div id="club-top" class="club-sect">
+          <span class="eyebrow">CLUBHOUSE</span>
+          <div class="h1" style="margin-top:4px">Your crew</div>
+          <div class="club-head mt">
+            <div class="club-avatar">C</div>
+            <div class="grow">
+              <div class="h2" style="font-size:16px">Carmi</div>
+              <div class="cap" style="color:var(--green);font-weight:600">Range Regular · Level 2</div>
+              <div class="cap">Handicap 12.4 · Strike 76</div>
+            </div>
+            <div class="club-xp"><span>XP</span><b>240</b></div>
+          </div>
+          <div class="xp-bar"><i></i></div>
+          <p class="cap" style="margin-top:6px">1240 Strike XP to Ball Striker</p>
+          <p class="club-bio">Dialing in center contact one range session at a time.</p>
+          <div class="club-stats">
+            <span>@carmi_golf</span><span class="dim">Miami, FL</span>
+            <span>HCP 12.4</span><span>Score 76</span>
+          </div>
+        </div>
+
+        <div id="club-bag" class="club-sect">
+          <div class="h2">My Bag</div>
+          <div class="bag-grid">
+            <span class="bag-chip">Driver</span><span class="bag-chip">5 Wood</span><span class="bag-chip">7 Iron</span>
+            <span class="bag-chip">Pitching Wedge</span><span class="bag-chip">Sand Wedge</span>
+          </div>
+        </div>
+
+        <div id="club-trophies" class="club-sect">
+          <div class="h2">Trophy Case</div>
+          <div class="tro mt">
+            <div class="got">🏆<small>First Center Strike</small></div>
+            <div class="got">🏆<small>10 Clean Contacts</small></div>
+            <div>🔒<small>No Fat Session</small></div>
+            <div>🔒<small>7-Iron Mastery</small></div>
+            <div>🔒<small>Ghost Slayer</small></div>
+          </div>
+        </div>
+
+        <div id="club-friends" class="club-sect">
+          <div class="h2">Friends</div>
+          <div class="card" style="padding:0 14px;margin-top:8px">
+            <div class="friend-row"><div class="friend-av">J</div><div class="grow"><b>Jordan</b><div class="cap">@jordan_irons · Orlando, FL</div></div><b class="score">91</b></div>
+            <div class="friend-row"><div class="friend-av">P</div><div class="grow"><b>Priya</b><div class="cap">@priya_wedges · Tampa, FL</div></div><b class="score">74</b></div>
+            <div class="friend-row"><div class="friend-av">S</div><div class="grow"><b>Sam</b><div class="cap">@sam_drives · Fort Lauderdale, FL</div></div><b class="score">68</b></div>
+            <div class="friend-row"><div class="friend-av">D</div><div class="grow"><b>Devon</b><div class="cap">@devon_range · Miami, FL</div></div><b class="score">61</b></div>
+          </div>
+        </div>
+
+        <div id="club-leaderboard" class="club-sect">
+          <div class="lb-head">
+            <div class="h2">Leaderboard</div>
+            <div class="scope-toggle">
+              <button class="scope-btn on" data-scope="friends">Friends</button>
+              <button class="scope-btn" data-scope="clubhouse">Clubhouse</button>
+            </div>
+          </div>
+          <div class="card" style="padding:14px;margin-top:8px">
+            <div class="lb-panel on" data-scope="friends">
+              <div class="lb-row"><span class="rank">1</span><span class="name">Jordan</span><span class="ver">verified</span><span class="pts">91</span></div>
+              <div class="lb-row me"><span class="rank">2</span><span class="name">Carmi</span><span class="you">YOU</span><span class="ver">verified</span><span class="pts">76</span></div>
+              <div class="lb-row"><span class="rank">3</span><span class="name">Priya</span><span class="ver">verified</span><span class="pts">74</span></div>
+              <div class="lb-row"><span class="rank">4</span><span class="name">Sam</span><span class="ver">manual</span><span class="pts">68</span></div>
+              <div class="lb-row"><span class="rank">5</span><span class="name">Devon</span><span class="ver">verified</span><span class="pts">61</span></div>
+            </div>
+            <div class="lb-panel" data-scope="clubhouse">
+              <div class="lb-row"><span class="rank">1</span><span class="name">Weekend Foursome · Alex</span><span class="ver">verified</span><span class="pts">95</span></div>
+              <div class="lb-row"><span class="rank">2</span><span class="name">Weekend Foursome · Riley</span><span class="ver">verified</span><span class="pts">88</span></div>
+              <div class="lb-row me"><span class="rank">3</span><span class="name">Carmi</span><span class="you">YOU</span><span class="ver">verified</span><span class="pts">76</span></div>
+              <div class="lb-row"><span class="rank">4</span><span class="name">Range Regulars · Kai</span><span class="ver">manual</span><span class="pts">72</span></div>
+              <div class="lb-row"><span class="rank">5</span><span class="name">Range Regulars · Noor</span><span class="ver">verified</span><span class="pts">59</span></div>
+            </div>
+          </div>
+          <p class="lb-foot">Ranked by verified smart-mat sessions and skill bracket, not raw shot volume.</p>
+        </div>
+
+        <div id="club-groups" class="club-sect">
+          <div class="h2">Clubhouse</div>
+          <div class="club-group"><b>Weekend Foursome</b><span>4 members · Club champion board</span></div>
+          <div class="club-group"><b>Range Regulars</b><span>12 members · Weekly consistency challenge</span></div>
+          <button class="cta mt">Invite your foursome</button>
+        </div>
+
+        <div id="club-device" class="club-sect">
+          <div class="h2">Device</div>
+          <div class="card" style="padding:16px;margin-top:8px">
+            <div class="device-row"><b>fairLie Smart Mat</b><span class="device-status" id="club-mat-status">Offline</span></div>
+            <p class="device-sub">Firmware 1.2.0 · Last calibrated recently</p>
+            <span class="device-link">Recalibrate</span>
+          </div>
+        </div>
+
+        <div id="club-links" class="club-links" style="margin-bottom:28px">
+          <div class="club-link">My profile<span>›</span></div>
+          <div class="club-link">Settings &amp; levels<span>›</span></div>
+          <div class="club-link">Friends<span>›</span></div>
+          <div class="club-link">Privacy &amp; safety<span>›</span></div>
+        </div>
+      </div></section>
+    </div>
+
+    <!-- ============ OVERLAYS ============ -->
+    <div class="overlay on" id="ov-login"><div class="ov-scroll" id="ov-login-scroll">
+      <div class="login-hero"><b>fairLie</b><span style="font-size:14px;opacity:.9;margin-top:6px">Train your strike. Own your game.</span></div>
+      <div class="card login-card">
+        <div class="mode-chips"><button class="mode-chip on">Sign in</button><button class="mode-chip">Create account</button></div>
+        <div class="h2">Welcome back</div>
+        <p class="cap" style="margin-top:4px;margin-bottom:14px">Sign in to sync sessions, stats, and clubhouse.</p>
+        <div class="field-block"><span class="field-label">Email</span><input class="field-input" value="carmi@fairlie.app" readonly></div>
+        <div class="field-block"><span class="field-label">Password</span><input class="field-input" type="password" value="••••••••" readonly></div>
+        <button class="cta mt" id="btn-signin">Sign in</button>
+        <div class="or-divider"><i></i>or<i></i></div>
+        <button class="apple-btn" id="btn-apple"> Sign in with Apple</button>
+        <div class="legal-foot">Your fairLie account stores your profile and swing history on this device.
+          <div class="legal-links">Privacy Policy · Terms of Use</div>
+        </div>
+      </div>
+    </div></div>
+
+    <div class="overlay" id="ov-setup"><div class="ov-scroll" id="ov-setup-scroll">
+      <span class="eyebrow">PROFILE SETUP</span>
+      <div class="h1" style="margin-top:4px">Build your golfer card</div>
+      <p class="cap" style="margin-top:6px">This unlocks Clubhouse, challenges, and your public profile.</p>
+      <div class="card mt" style="padding:16px">
+        <span class="field-label">Home course / city</span>
+        <input class="field-input" value="Miami, FL" readonly style="margin-top:6px">
+      </div>
+      <div class="card mt" style="padding:16px">
+        <div class="row"><span class="h2 grow" style="font-size:15px">Handicap</span><b style="color:var(--green-dark)">12.4</b></div>
+        <div class="bar" style="margin-top:10px"><i style="width:34%"></i></div>
+      </div>
+      <div class="card mt" style="padding:16px">
+        <div class="h2" style="font-size:15px;margin-bottom:8px">Skill level</div>
+        <div class="setup-skill">Beginner</div>
+        <div class="setup-skill on">Range Regular<span>✓</span></div>
+        <div class="setup-skill">Ball Striker</div>
+        <div class="setup-skill">Shot Shaper</div>
+      </div>
+      <div class="card mt" style="padding:16px">
+        <div class="h2" style="font-size:15px;margin-bottom:8px">My bag</div>
+        <div class="bag-pick">
+          <button class="on">Driver</button><button class="on">5 Wood</button><button class="on">7 Iron</button>
+          <button class="on">Pitching Wedge</button><button class="on">Sand Wedge</button>
+        </div>
+      </div>
+      <button class="cta mt" id="btn-setup-done">Enter the clubhouse</button>
+    </div></div>
+
+    <div class="overlay" id="ov-profile"><div class="ov-bar"><button id="prof-back">← Back</button><span class="title">@carmi_golf</span><button class="right" id="prof-settings">Settings</button></div>
+      <div class="ov-scroll" id="ov-profile-scroll" style="padding-top:8px">
+        <div class="prof-head">
+          <div class="prof-av">C</div>
+          <div><div class="h2" style="font-size:20px">Carmi</div><div class="cap">@carmi_golf</div>
+            <p class="cap" style="margin-top:6px;line-height:1.45">Dialing in center contact one range session at a time.</p>
+            <div class="cap" style="color:var(--green);margin-top:4px">Miami, FL · Range Regular</div></div>
+        </div>
+        <div class="prof-stats">
+          <div><b>48</b><span>Sessions</span></div><div><b>128</b><span>Followers</span></div><div><b>4</b><span>Following</span></div>
+        </div>
+        <div class="prof-badges"><span>A-2</span><span>HCP 12.4</span></div>
+        <div class="prof-tabs"><button class="prof-tab on">Activity</button><button class="prof-tab">Stats</button><button class="prof-tab">Clips</button></div>
+        <div class="card act-row row"><div class="grow"><b>7 Iron practice</b><div class="cap">Today, 2:42 PM · 3 swings</div></div><span class="score">88</span></div>
+        <div class="card act-row row"><div class="grow"><b>Driver practice</b><div class="cap">Sunday, 10:18 AM · 2 swings</div></div><span class="score">72</span></div>
+        <div class="card act-row row"><div class="grow"><b>PW practice</b><div class="cap">Friday, 4:06 PM · 2 swings</div></div><span class="score">58</span></div>
+      </div>
+    </div>
+
+    <div class="overlay" id="ov-settings"><div class="ov-bar"><button id="set-back">← Back</button><span class="title">Settings</span><span class="right"></span></div>
+      <div class="ov-scroll" id="ov-settings-scroll" style="padding-top:8px">
+        <div class="set-section"><div class="h2">Profile</div>
+          <div class="field-block"><span class="field-label">Name</span><input class="field-input" value="Carmi" readonly></div>
+          <div class="field-block"><span class="field-label">City</span><input class="field-input" value="Miami, FL" readonly></div>
+          <div class="field-block"><span class="field-label">Bio</span><input class="field-input" value="Dialing in center contact one range session at a time." readonly></div>
+          <div class="card" style="padding:14px"><div class="row"><span>Handicap</span><b style="color:var(--green-dark)">12.4</b></div><div class="bar" style="margin-top:8px"><i style="width:34%"></i></div></div>
+          <button class="cta mt">Save profile</button>
+        </div>
+        <div class="set-section"><div class="h2">Preferences</div>
+          <div class="card set-toggle"><div><b>Outdoor readability</b><small>Higher contrast for range use</small></div><span class="toggle-sw"></span></div>
+          <div class="card set-toggle mt"><div><b>Notifications</b><small>Challenges, streaks, and session recaps</small></div><span class="toggle-sw"></span></div>
+        </div>
+        <div class="set-section"><div class="h2">Privacy &amp; data</div>
+          <div class="card"><div class="set-row">Privacy Policy<span class="muted">›</span></div><div class="set-row">Terms of Use<span class="muted">›</span></div><div class="set-row">Export my data<span class="muted">›</span></div></div>
+        </div>
+        <div class="set-section"><div class="h2">Support</div>
+          <div class="card"><div class="set-row">Contact support<span class="muted">↗</span></div><div class="set-row">Help centre<span class="muted">↗</span></div></div>
+        </div>
+        <div class="set-section"><div class="h2">Account</div>
+          <div class="card" style="padding:14px"><div class="cap">Signed in as carmi@fairlie.app</div><div class="cap" style="margin-top:4px">Using Sign in with Apple</div></div>
+          <button class="cta-outline">Sign out</button>
+          <p class="set-danger" style="text-align:center;margin-top:14px;font-size:14px">Delete account</p>
+          <p class="cap" style="text-align:center;margin-top:14px;margin-bottom:24px">fairLie · v1.0.0</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="caption"><span></span></div>
+
+    <nav class="tabbar" id="tabbar"></nav>
+    <div id="touch"></div>
+  </div>
+</div>
+
+<script>
+const P = new URLSearchParams(location.search);
+const SCALE = parseFloat(P.get('scale') || '1');
+document.getElementById('stage').style.transform = `scale(${SCALE})`;
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+const ICONS = {
+  home:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/>',
+  practice:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/>',
+  play:'<path d="M6 4.5v15l12-7.5z"/>',
+  progress:'<path d="M4 19V9"/><path d="M10 19V5"/><path d="M16 19v-7"/><path d="M21 19H3"/>',
+  club:'<circle cx="9" cy="8" r="3.4"/><path d="M3 19.5c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16.5 11.2a3 3 0 1 0-1.8-5.4"/><path d="M17 19.5c0-2.3-.9-4-2.3-5"/>'
+};
+const TABS = ['home','practice','play','progress','club'];
+const LABEL = {home:'Home',practice:'Practice',play:'Play',progress:'Progress',club:'Club'};
+$('#tabbar').innerHTML = TABS.map(t => `<div class="tab${t==='home'?' on':''}" data-tab="${t}"><svg viewBox="0 0 24 24">${ICONS[t]}</svg>${LABEL[t]}</div>`).join('');
+function showOverlay(id){
+  $$('.overlay').forEach(o => o.classList.toggle('on', o.id === id));
+  $('#tabbar').style.opacity = (id === 'ov-login' || id === 'ov-setup') ? '0' : '1';
+}
+function hideOverlays(){ $$('.overlay').forEach(o => o.classList.remove('on')); $('#tabbar').style.opacity = '1'; }
+function enterApp(){ hideOverlays(); goTab('home'); scrollTo('#sc-home',0); }
+function goTab(t){ hideOverlays(); $$('.tab').forEach(e => e.classList.toggle('on', e.dataset.tab === t)); $$('.screen').forEach(e => e.classList.toggle('on', e.id === 's-' + t)); }
+function setBoard(scope){
+  $$('.scope-btn').forEach(b => b.classList.toggle('on', b.dataset.scope === scope));
+  $$('.lb-panel').forEach(p => p.classList.toggle('on', p.dataset.scope === scope));
+}
+function scrollClub(sel){ scrollTo('#sc-club', sel || 0); }
+function updateClubMat(){ const el=$('#club-mat-status'); if(!el) return; el.textContent=state.connected?'Connected':'Offline'; el.classList.toggle('off',!state.connected); }
+
+const GCOL = {A:'#1c9c5e', B:'#5aa74a', C:'#d9a42b', D:'#d6453b', F:'#9a3412'};
+const GBG = {A:'#dff4e7', B:'#e8f6ee', C:'#fff2c0', D:'#fae5c9', F:'#fbe9e7'};
+function letterFor(v){ if(v>=93) return 'A'; if(v>=85) return 'B'; if(v>=72) return 'C'; if(v>=60) return 'D'; return 'F'; }
+function computeGrades(s){
+  const contact = s.q;
+  const pathScore = Math.max(0, Math.round(100 - Math.abs(s.path) * 9));
+  const attackScore = Math.max(0, Math.round(100 - Math.abs(s.aoa + 3) * 12));
+  const overall = Math.round(contact * 0.55 + pathScore * 0.25 + attackScore * 0.2);
+  return { contact, pathScore, attackScore, overall };
+}
+function fsrPeaksFromHCT(h, c, t, q){
+  const base = Math.max(40, q * 1.35);
+  const heel = base * (h / 100), center = base * (c / 100), toe = base * (t / 100);
+  return [Math.round(heel*.55+8),Math.round(heel*.45+6),Math.round(center*.48+10),Math.round(center*.52+8),Math.round(toe*.52+5),Math.round(toe*.48+4)];
+}
+function impactZoneFromHCT(h,c,t){ if(h>=c&&h>=t) return 0; if(t>=c) return 5; return 2; }
+
+const SWINGS = [
+  {g:'C',q:62,x:.40,y:.55,club:78,ball:108,aoa:-2.1,path:-4.2,smash:1.38,carry:142,heel:40,center:35,toe:25,note:'Slight heel',impactName:'Heel-side contact',direction:'Pull',radarMph:106.2,radarMm:842,radarIntra:78},
+  {g:'B',q:81,x:.50,y:.49,club:82,ball:116,aoa:-3.0,path:-1.5,smash:1.41,carry:158,heel:28,center:48,toe:24,note:'Solid contact',impactName:'Centered contact',direction:'Straight',radarMph:114.8,radarMm:798,radarIntra:84},
+  {g:'D',q:45,x:.31,y:.62,club:74,ball:96,aoa:-0.4,path:-6.0,smash:1.30,carry:118,heel:55,center:25,toe:20,note:'Heel · thin',impactName:'Heel-side contact',direction:'Pull',radarMph:94.1,radarMm:612,radarIntra:62},
+  {g:'A',q:93,x:.51,y:.50,club:85,ball:124,aoa:-3.6,path:-0.8,smash:1.46,carry:176,heel:22,center:56,toe:22,note:'Flush center',impactName:'Centered contact',direction:'Straight',radarMph:122.4,radarMm:756,radarIntra:91},
+  {g:'A',q:88,x:.48,y:.52,club:84,ball:121,aoa:-3.2,path:-1.0,smash:1.44,carry:171,heel:24,center:52,toe:24,note:'Center strike',impactName:'Centered contact',direction:'Straight',radarMph:119.6,radarMm:768,radarIntra:88},
+];
+SWINGS.forEach(s => { s.fsrPeaks = fsrPeaksFromHCT(s.heel,s.center,s.toe,s.q); s.impactZone = impactZoneFromHCT(s.heel,s.center,s.toe); });
+
+const PRESETS = {
+  perfect:{g:'A',q:94,club:86,ball:125,aoa:-3.5,path:-0.5,smash:1.45,carry:178,heel:20,center:58,toe:22,note:'Perfect center',impactName:'Centered contact',direction:'Straight',radarMph:123,radarMm:750,radarIntra:92},
+  heel:{g:'D',q:38,club:76,ball:98,aoa:-1.2,path:-5.5,smash:1.29,carry:115,heel:58,center:28,toe:14,note:'Heel pressure',impactName:'Heel-side contact',direction:'Pull',radarMph:96,radarMm:620,radarIntra:58},
+  toe:{g:'C',q:55,club:80,ball:110,aoa:-2.8,path:3.2,smash:1.38,carry:138,heel:18,center:32,toe:50,note:'Toe-side miss',impactName:'Toe-side contact',direction:'Push',radarMph:108,radarMm:810,radarIntra:71},
+  thin:{g:'F',q:32,club:72,ball:88,aoa:2.1,path:-2.0,smash:1.22,carry:98,heel:30,center:40,toe:30,note:'Thin contact',impactName:'Thin strike',direction:'Straight',radarMph:86,radarMm:540,radarIntra:48},
+};
+Object.keys(PRESETS).forEach(k => { const s=PRESETS[k]; s.fsrPeaks=fsrPeaksFromHCT(s.heel,s.center,s.toe,s.q); s.impactZone=impactZoneFromHCT(s.heel,s.center,s.toe); });
+
+let state = { session:false, connected:false, zeroed:false, armed:false, radarLocked:false, swings:[], swingNo:0, tracking:false };
+
+$('#live-sensors').innerHTML = Array.from({length:6},(_,i)=>`<div id="ls${i}"><span>S${i+1}</span><i><b style="width:0%"></b></i><strong>0</strong></div>`).join('');
+$('#heat-grid').innerHTML = Array.from({length:6},(_,i)=>`<div class="heat-cell" id="hc${i}"><small>S${i+1}</small></div>`).join('');
+$('#grade-grid').innerHTML = `
+  <div class="grade-item"><span class="letter" id="gl-o">—</span><div><b>Overall</b><small id="gn-o">Waiting</small></div><strong id="gv-o">0</strong></div>
+  <div class="grade-item"><span class="letter" id="gl-c">—</span><div><b>Contact</b><small id="gn-c">Impact quality</small></div><strong id="gv-c">0</strong></div>
+  <div class="grade-item"><span class="letter" id="gl-p">—</span><div><b>Swing path</b><small id="gn-p">0° path</small></div><strong id="gv-p">0</strong></div>
+  <div class="grade-item"><span class="letter" id="gl-a">—</span><div><b>Attack</b><small id="gn-a">0° angle</small></div><strong id="gv-a">0</strong></div>`;
+
+function coachTitle(s){ if(!s) return 'Take a swing to coach it.'; if(s.q>=85) return 'Keep that tempo.'; if(Math.abs(s.path)>4) return 'Quiet the path first.'; if(s.aoa<-6) return 'Shallow the attack.'; return 'Solid building block.'; }
+function coachCopy(s){ if(!s) return 'Connect the mat ESP and radar ESP, or use the simulator to populate the lab.'; return `Ball ${s.ball} mph · club ${s.club} mph · smash ${s.smash.toFixed(2)} · attack ${s.aoa.toFixed(1)}° · path ${s.path.toFixed(1)}°. Pressure ${s.heel}/${s.center}/${s.toe} heel/center/toe${state.radarLocked?' · radar locked':''}.`; }
+function headlineFor(s){ if(!s) return 'Waiting.'; if(s.q>=85) return 'Pure contact.'; if(s.q>=60) return 'Solid strike.'; return 'Keep working.'; }
+function trendFor(s){ if(!s) return '—'; if(s.q>=85) return 'Pure'; if(s.q>=60) return 'Solid'; return 'Work'; }
+function sumLabelFor(v){ if(v>=85) return 'Excellent'; if(v>=60) return 'Good'; return 'Building'; }
+
+function updateHeatmap(s){
+  (s.fsrPeaks||[]).forEach((v,i)=>{ const el=$(`#hc${i}`); const intensity=Math.min(1,v/180); const hue=55-intensity*50, light=93-intensity*43;
+    el.style.background=v===0?'#dfe9e3':`hsl(${hue} 88% ${light}%)`; el.classList.toggle('impact',i===(s.impactZone??2));
+    el.style.boxShadow=i===(s.impactZone??2)?`0 0 ${12+intensity*16}px hsla(${hue} 90% 48% / .35)`:'none'; });
+}
+function updateSensors(s){
+  const peaks=s.fsrPeaks||[0,0,0,0,0,0]; const peak=Math.max(...peaks); const peakIdx=peak>0?peaks.indexOf(peak):-1;
+  peaks.forEach((v,i)=>{ const el=$(`#ls${i}`); el.querySelector('b').style.width=Math.min(100,(v/180)*100)+'%'; el.querySelector('strong').textContent=v; el.classList.toggle('peak',i===peakIdx); });
+  $('#lm-peak').textContent=peak||0; $('#lm-sensor').textContent=peakIdx>=0?`S${peakIdx+1}`:'—';
+}
+function updatePath(s){
+  const t=Math.min(1,Math.max(0,(s.path+12)/24)); const cx=20+t*300; const cy=95-Math.abs(s.aoa+3)*4-s.q*0.15;
+  $('#path-dot').setAttribute('cx',cx.toFixed(1)); $('#path-dot').setAttribute('cy',Math.max(18,Math.min(100,cy)).toFixed(1));
+  $('#path-badge').textContent=state.tracking?'● Live tracking':'Idle'; $('#path-badge').classList.toggle('off',!state.tracking);
+}
+function updateGrades(s){
+  const g=computeGrades(s);
+  [{id:'o',val:g.overall,note:'Combined strike grade'},{id:'c',val:g.contact,note:'Impact quality'},{id:'p',val:g.pathScore,note:`${s.path.toFixed(1)}° path`},{id:'a',val:g.attackScore,note:`${s.aoa.toFixed(1)}° angle`}].forEach(it=>{
+    const letter=letterFor(it.val), L=$(`#gl-${it.id}`); L.textContent=letter; L.style.color=GCOL[letter]; L.style.background=GBG[letter];
+    $(`#gn-${it.id}`).textContent=it.note; $(`#gv-${it.id}`).textContent=it.val; });
+  $('#grade-heading').textContent='Your swing report';
+}
+function updateSessionCard(){
+  const sw=state.swings; $('#ss-swings').textContent=sw.length;
+  if(!sw.length){ ['ss-avg','ss-best','ss-ball','ss-smash','ss-radar'].forEach(id=>$('#'+id).textContent='—'); return; }
+  const scores=sw.map(s=>computeGrades(s).overall);
+  $('#ss-avg').textContent=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+  $('#ss-best').textContent=Math.max(...sw.map(s=>s.carry));
+  $('#ss-ball').textContent=Math.round(sw.reduce((a,s)=>a+s.ball,0)/sw.length);
+  $('#ss-smash').textContent=(sw.reduce((a,s)=>a+s.smash,0)/sw.length).toFixed(2);
+  $('#ss-radar').textContent=Math.round(sw.filter(s=>s.radarMph).length/sw.length*100)+'%';
+}
+function updateSliders(s){
+  $('#rng-ball').value=s.ball; $('#sl-ball').textContent=s.ball+' mph';
+  $('#rng-club').value=s.club; $('#sl-club').textContent=s.club+' mph';
+  $('#rng-aoa').value=s.aoa; $('#sl-aoa').textContent=s.aoa.toFixed(1)+'°';
+  $('#rng-path').value=s.path; $('#sl-path').textContent=s.path.toFixed(1)+'°';
+  $('#rng-q').value=s.q; $('#sl-q').textContent=s.q;
+}
+function updateRadar(s){
+  if(state.radarLocked&&s.radarMph){ $('#rad-mph').textContent=s.radarMph.toFixed(1); $('#rad-mm').textContent=s.radarMm; $('#rad-intra').textContent=s.radarIntra;
+    $('#hm-radar').textContent='On'; $('#sg-radar').textContent=Math.round(s.radarMph); }
+}
+function hitSwing(s,{history=true}={}){
+  state.tracking=true;
+  if(history){ state.swingNo++; state.swings.unshift(s); }
+  const overall=computeGrades(s).overall;
+  $('#hero-chip').innerHTML='<i></i> TRACKING';
+  $('#hero-carry').innerHTML=s.carry+'<span>yds</span>';
+  $('#hero-headline').textContent=headlineFor(s);
+  $('#hero-note').textContent=`${s.impactName} · ${s.direction} · ${s.ball} mph ball`;
+  $('#hm-club').innerHTML=s.club+'<small>mph</small>'; $('#hm-ball').innerHTML=s.ball+'<small>mph</small>';
+  $('#hm-smash').textContent=s.smash.toFixed(2); $('#hm-aoa').innerHTML=s.aoa.toFixed(1)+'<small>°</small>'; $('#hm-path').innerHTML=s.path.toFixed(1)+'<small>°</small>';
+  $('#sum-score').textContent=overall; $('#sum-label').textContent=sumLabelFor(overall);
+  $('#score-ring').style.background=`conic-gradient(var(--green) 0 ${overall}%, #e8f6ee ${overall}% 100%)`;
+  $('#sum-trend').textContent=trendFor(s);
+  $('#sg-carry').textContent=s.carry; $('#sg-ball').textContent=s.ball; $('#sg-club').textContent=s.club;
+  $('#sg-smash').textContent=s.smash.toFixed(2); $('#sg-aoa').textContent=s.aoa.toFixed(1)+'°'; $('#sg-path').textContent=s.path.toFixed(1)+'°';
+  $('#sg-hct').textContent=`${s.heel}/${s.center}/${s.toe}`; $('#sg-impact').textContent=s.impactName.replace('-side contact','').replace(' contact','').trim()||s.note;
+  $('#impact-name').textContent=s.impactName; $('#impact-hct').textContent=`${s.heel}% heel · ${s.center}% center · ${s.toe}% toe`;
+  $('#coach-title').textContent=coachTitle(s); $('#coach-copy').textContent=coachCopy(s);
+  updateHeatmap(s); updateSensors(s); updatePath(s); updateGrades(s); updateSliders(s); updateRadar(s); updateSessionCard();
+  $('#lm-title').textContent='Mat BLE + Radar USB · tracking';
+  $('#lm-sub').textContent=`${state.swingNo||state.swings.length} strikes captured this session`;
+  $('#lm-state').textContent='Tracking';
+  if(history){
+    const h=$('#hist'); if(state.swingNo===1) h.innerHTML='';
+    const letter=s.g||letterFor(overall);
+    const row=document.createElement('div'); row.className='hrow';
+    row.innerHTML=`<span class="gbadge" style="background:${GCOL[letter]}">${letter}</span><div class="hrow-main"><b>${s.note}</b><div class="hrow-meta"><span>${overall} score</span><span>${s.carry} yds</span><span>${s.ball} mph</span><span>${s.smash.toFixed(2)} smash</span><span>${s.aoa.toFixed(1)}° / ${s.path.toFixed(1)}°</span></div></div>`;
+    h.prepend(row); $('#hs-score').textContent=overall; $('#hs-center').textContent=s.center+'%';
+  }
+}
+function applyPreset(key){
+  const s=key==='random'?{...SWINGS[Math.floor(Math.random()*SWINGS.length)]}:PRESETS[key]?{...PRESETS[key]}:null;
+  if(!s) return; hitSwing(s,{history:false});
+  $$('.cmp-btn').forEach(b=>b.classList.toggle('on',b.dataset.preset===key));
+}
+$$('.cmp-btn').forEach(b=>b.addEventListener('click',()=>applyPreset(b.dataset.preset)));
+
+function updateWorkflow(){
+  const steps=[{key:'session',done:state.session,active:!state.session},{key:'connect',done:state.connected,active:state.session&&!state.connected},{key:'zero',done:state.zeroed,active:state.connected&&!state.zeroed},{key:'init',done:state.armed,active:state.zeroed&&!state.armed},{key:'strike',done:false,active:state.armed}];
+  $$('#workflow .wf-step').forEach(el=>{ const st=steps.find(x=>x.key===el.dataset.step); el.classList.toggle('done',st.done); el.classList.toggle('active',st.active);
+    el.querySelector('i').textContent=st.done?'✓':['session','connect','zero','init','strike'].indexOf(st.key)+1; });
+}
+function updateMatDock(){
+  $('#mat-dock').classList.toggle('armed',state.armed);
+  let title='Initialize a session', sub='Pick mat COM / BLE — radar uses a separate board';
+  if(state.armed){ title='Ready for one swing'; sub='Bluetooth mat linked · armed'; }
+  else if(!state.session){ title='Initialize a session'; sub='Start a session to connect the mat'; }
+  else if(!state.connected){ title='Connect mat ESP'; sub='Pick mat COM / BLE — radar uses a separate board'; }
+  else if(!state.zeroed){ title='Mat linked · Needs zeroing'; sub='GolfMat-7A2F connected'; }
+  else { title='Zeroed · Initialize swing'; sub='Sensors at zero — initialize when ready'; }
+  $('#mat-title').textContent=title; $('#mat-sub').textContent=sub;
+  $('#btn-mat-ble').classList.toggle('hide',state.connected);
+  $('#btn-zero').classList.toggle('hide',!state.connected);
+  $('#btn-init').classList.toggle('hide',!state.connected||!state.zeroed);
+  $('#btn-disc').classList.toggle('hide',!state.connected);
+  $('#btn-clear').classList.toggle('hide',!state.connected);
+  $('#btn-test').classList.toggle('hide',!state.armed);
+  if(state.connected) $('#btn-init').textContent=state.armed?'Armed':'Initialize swing';
+  updateWorkflow();
+}
+function startSession(){ state.session=true; state.swings=[]; state.swingNo=0; $('#active-sess').classList.add('on'); $('#sess-pill').textContent='■ End session'; $('#sess-pill').classList.add('end'); updateMatDock(); updateSessionCard(); }
+function connectMat(){ state.connected=true; $('#matpill').classList.add('on'); $('#matpill').textContent='Mat on'; updateMatDock(); updateClubMat(); }
+function zeroMat(){ state.zeroed=true; updateMatDock(); }
+function initSwing(){ state.armed=true; updateMatDock(); }
+function lockRadar(){
+  state.radarLocked=true; $('#radar-dock').classList.add('radar-locked');
+  $('#radar-dock-title').textContent='Radar ESP linked'; $('#radar-dock-sub').textContent='GMRADAR streaming · motion locked';
+  $('#radar-panel').classList.add('locked'); $('#rp-title').textContent='Radar motion locked'; $('#rp-sub').textContent='Live ball speed from XM125 module';
+  $('#radar-stats').style.display='grid';
+}
+updateMatDock();
+
+$('#spark').innerHTML = [52,58,55,63,61,69,72,76].map(v => `<i style="height:0%" data-h="${v}"></i>`).join('');
+function growSpark(){ $$('#spark i').forEach((el,i) => setTimeout(() => el.style.height = el.dataset.h + '%', i * 70)); }
+
+const touch = $('#touch');
+function point(x,y){ touch.style.opacity=1; touch.style.left=x+'px'; touch.style.top=y+'px'; }
+function tap(){ touch.classList.remove('tap'); void touch.offsetWidth; touch.classList.add('tap'); }
+const hideTouch = () => touch.style.opacity = 0;
+function say(text){ const c=$('#caption'); c.querySelector('span').textContent=text; c.classList.add('on'); }
+const clearSay = () => $('#caption').classList.remove('on');
+/** Scroll a .scroller so `target` sits near the top of the visible phone screen. */
+function scrollTo(sel, pxOrTarget){
+  const sc = $(sel);
+  if (!sc) return;
+  let px = 0;
+  if (typeof pxOrTarget === 'number') {
+    px = pxOrTarget;
+  } else if (typeof pxOrTarget === 'string') {
+    const el = $(pxOrTarget);
+    if (el) px = Math.max(0, el.offsetTop - 12);
+  }
+  sc.style.transform = `translateY(${-px}px)`;
+}
+function scrollPractice(target){ scrollTo('#sc-practice', target); }
+
+const TL = []; const at = (t,fn) => TL.push([t,fn]);
+
+/* —— Login & profile setup —— */
+$('#tabbar').style.opacity = '0';
+at(400, () => say('Train your strike. Own your game.'));
+at(3200, () => point(215,520));
+at(3600, tap);
+at(3800, () => { showOverlay('ov-setup'); hideTouch(); clearSay(); say('Build your golfer card'); });
+at(5200, () => scrollTo('#ov-setup-scroll',280));
+at(6800, () => point(215,680));
+at(7200, tap);
+at(7400, () => { enterApp(); hideTouch(); clearSay(); say('Your strike, tracked every session'); });
+
+/* —— Home —— */
+at(9200, () => point(215,700));
+at(9600, () => scrollTo('#sc-home',200));
+at(10800, () => scrollTo('#sc-home',0));
+
+/* —— Practice / Strike Lab (full flow preserved) —— */
+at(11800, () => point(140,878));
+at(12200, tap);
+at(12400, () => { goTab('practice'); hideTouch(); scrollTo('#sc-practice',0); });
+at(12700, () => say('Start a session'));
+at(13100, () => point(360,195));
+at(13500, tap);
+at(13700, () => { startSession(); hideTouch(); clearSay(); });
+
+at(14100, () => say('Pair the mat over Bluetooth'));
+at(14500, () => point(80,520));
+at(14900, tap);
+at(15100, () => { connectMat(); $('#btn-mat-ble').textContent='Pairing…'; });
+at(16300, () => { $('#btn-mat-ble').classList.add('hide'); hideTouch(); clearSay(); say('Zero the sensors'); });
+
+at(16900, () => point(100,555));
+at(17300, tap);
+at(17500, () => { $('#btn-zero').textContent='Zeroing…'; });
+at(19100, () => { zeroMat(); $('#btn-zero').textContent='Re-zero'; hideTouch(); clearSay(); say('Initialize before you swing'); });
+
+at(19700, () => point(220,555));
+at(20100, tap);
+at(20300, () => { initSwing(); hideTouch(); clearSay(); });
+
+at(20900, () => say('Radar locks on ball speed'));
+at(21300, () => point(80,640));
+at(21700, tap);
+at(21900, () => { lockRadar(); hideTouch(); });
+at(22500, clearSay);
+at(23100, () => { say('Every strike graded'); hitSwing(SWINGS[0]); });
+at(25500, () => hitSwing(SWINGS[1]));
+at(27700, () => { hitSwing(SWINGS[2]); say('Coach calls out the miss'); });
+at(29700, clearSay);
+at(30100, () => { hitSwing(SWINGS[3]); say('Flush center — A'); });
+at(32500, () => { hitSwing(SWINGS[4]); clearSay(); });
+at(34500, () => scrollPractice('#hero-strike'));
+at(35500, () => say('Carry, smash, and path on every hit'));
+at(37900, () => { clearSay(); scrollPractice('#grade-panel'); say('Grades break down every dimension'); });
+at(41500, () => { clearSay(); scrollPractice('#impact-panel'); say('Pressure map shows heel to toe'); });
+at(44500, () => { clearSay(); scrollPractice('#hist'); say('Session history builds as you go'); });
+at(47100, () => { clearSay(); scrollPractice(0); });
+
+/* —— Progress —— */
+at(48100, () => point(258,878));
+at(48500, tap);
+at(48700, () => { goTab('progress'); hideTouch(); growSpark(); say('Trends across every session'); });
+at(50500, () => scrollTo('#sc-progress',320));
+at(51500, () => { clearSay(); say('Every session saved with detail'); });
+at(53500, () => scrollTo('#sc-progress',0));
+
+/* —— Play / Challenges —— */
+at(54500, () => point(215,878));
+at(54900, tap);
+at(55100, () => { goTab('play'); hideTouch(); say('Challenges keep range time focused'); });
+at(56800, () => scrollTo('#sc-play',280));
+at(57800, clearSay);
+
+/* —— Clubhouse deep scroll —— */
+at(58800, () => point(374,878));
+at(59200, tap);
+at(59400, () => { goTab('club'); hideTouch(); scrollTo('#sc-club',0); say('Your golf crew'); });
+at(61200, () => { clearSay(); scrollClub('#club-trophies'); say('Earn trophies'); });
+at(63200, () => { clearSay(); scrollClub('#club-friends'); say('Friends on the mat'); });
+at(65200, () => { clearSay(); scrollClub('#club-leaderboard'); say('Compete on the leaderboard'); });
+at(66800, () => setBoard('clubhouse'));
+at(68200, () => { setBoard('friends'); clearSay(); scrollClub('#club-bag'); say('Your bag, your game'); });
+at(70200, () => scrollClub('#club-device'));
+
+/* —— Profile & Settings peek —— */
+at(71800, () => { showOverlay('ov-profile'); $('#tabbar').style.opacity='1'; say('Your profile, your stats'); });
+at(73800, () => { showOverlay('ov-settings'); clearSay(); say('Settings & privacy'); });
+at(75800, () => { hideOverlays(); goTab('home'); scrollTo('#sc-home',0); clearSay(); });
+
+/* —— End card —— */
+at(76800, () => say('fairLie — train your strike'));
+at(84000, () => { clearSay(); window.__demoDone = true; });
+
+window.__demoDuration = Math.max(...TL.map(x => x[0])) + 1200;
+function run(){
+  window.__demoDone = false;
+  showOverlay('ov-login');
+  $('#tabbar').style.opacity = '0';
+  scrollTo('#sc-home',0); scrollTo('#sc-practice',0); scrollTo('#sc-club',0);
+  setBoard('friends'); updateClubMat();
+  TL.forEach(([t,fn]) => setTimeout(fn,t));
+}
+window.__start = run;
+if (!P.has('manual')) setTimeout(run, 600);
+</script>
+</body>
+</html>
