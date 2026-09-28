@@ -6,9 +6,57 @@ import { radarSerialClient } from './radar/RadarSerialClient.js'
 import { mergeRadarIntoSwing } from './radar/radarPacket.js'
 import { generateRandomSwing, pickBelowAverageSimParams, simulateSwing, SWING_PRESETS } from './engine/SwingSimulator.js'
 import { buildSessionSummary, strikeMetrics } from './engine/sessionSummary.js'
+import { bumpChallenge, fetchClubhouse, fetchProfile, fetchSessions, joinChallenge, likeClubhousePost, postClubhouseFeed, rsvpClubhouseEvent, saveProfile, saveSession } from './api/client.js'
 import SwingVisualizer3D from './components/SwingVisualizer3D.jsx'
+import ProfileView from './components/ProfileView.jsx'
+import ClubhouseView from './components/ClubhouseView.jsx'
 
-const initialSessions = [
+const fallbackProfile = {
+  id: 'me',
+  displayName: 'Carmine',
+  handle: 'carmine',
+  initials: 'CM',
+  homeClub: 'Strike Lab Range',
+  handicap: 14.2,
+  preferredClubs: ['7 Iron', 'Driver', 'PW'],
+  bio: 'Working the mid-irons and getting radar ball speed honest.',
+  location: 'Local range',
+  streakDays: 12,
+  goals: { targetHandicap: 10, weeklySessions: 4, focusClub: '7 Iron' },
+  stats: { totalSessions: 0, totalSwings: 0, bestScore: null, avgScore: null, bestCarryYds: null, avgBallMph: null },
+}
+
+const fallbackClubhouse = {
+  name: 'Strike Lab Clubhouse',
+  tagline: 'Range rats chasing pure contact',
+  members: [
+    { id: 'm1', name: 'Carmine', handle: 'carmine', initials: 'CM', handicap: 14.2, rank: 1, score: 88, swings: 142, streak: 12, isYou: true },
+    { id: 'm2', name: 'Alex R', handle: 'alexr', initials: 'AR', handicap: 9.4, rank: 2, score: 91, swings: 210, streak: 8, isYou: false },
+    { id: 'm3', name: 'Jordan K', handle: 'jordank', initials: 'JK', handicap: 18.1, rank: 3, score: 76, swings: 96, streak: 3, isYou: false },
+  ],
+  challenges: [
+    { id: 'ch_center', title: 'Center-face week', detail: 'Land 12 centered 7-iron strikes.', progress: 5, target: 12, endsAt: '2026-10-05T23:59:59.000Z', joined: true, reward: '+3 points' },
+    { id: 'ch_ballspeed', title: 'Honest ball speed', detail: '8 radar-valid swings over 95 mph.', progress: 2, target: 8, endsAt: '2026-10-05T23:59:59.000Z', joined: false, reward: 'Radar badge' },
+  ],
+  feed: [
+    { id: 'f1', author: 'Alex R', text: 'Dialed a 7i to 148. Who’s next?', when: '2h ago', likes: 4 },
+  ],
+  announcements: [
+    { id: 'a1', title: 'Tuesday range night', body: 'Open bay 6–8pm with live Strike Lab scoring.' },
+  ],
+  events: [
+    { id: 'ev_tuesday', title: 'Tuesday range night', detail: 'Open bay with live mat + radar.', when: 'Tue 6–8 PM', place: 'Bay 3', attendees: 7, rsvped: true },
+    { id: 'ev_sat', title: 'Smash factor clinic', detail: 'Radar ball-speed session.', when: 'Sat 10 AM', place: 'Bay 1', attendees: 4, rsvped: false },
+  ],
+  badges: [
+    { id: 'b_streak', label: '12-day streak', icon: '🔥', earned: true },
+    { id: 'b_radar', label: 'Radar locked', icon: '📡', earned: true },
+    { id: 'b_center', label: 'Center face', icon: '◎', earned: false },
+  ],
+  you: { rank: 1, score: 88, name: 'Carmine', streak: 12 },
+}
+
+const fallbackSessions = [
   { id: 1, club: '7 Iron', distance: '168 yds', score: 92, swings: 24, when: 'Today, 2:42 PM', tone: 'great' },
   { id: 2, club: 'Driver', distance: '274 yds', score: 84, swings: 38, when: 'Sunday, 10:18 AM', tone: 'good' },
   { id: 3, club: 'PW', distance: '126 yds', score: 78, swings: 18, when: 'Friday, 4:06 PM', tone: 'warm' },
@@ -36,8 +84,12 @@ export default function App() {
   const [notice, setNotice] = useState('Connect mat ESP and/or radar ESP, or try a demo strike.')
   const [activeSession, setActiveSession] = useState(null)
   const [sessionSwings, setSessionSwings] = useState([])
-  const [sessions, setSessions] = useState(initialSessions)
+  const [sessions, setSessions] = useState([])
   const [selectedSession, setSelectedSession] = useState(null)
+  const [apiOnline, setApiOnline] = useState(false)
+  const [profile, setProfile] = useState(fallbackProfile)
+  const [clubhouse, setClubhouse] = useState(fallbackClubhouse)
+  const [savingProfile, setSavingProfile] = useState(false)
   const [lastReadingAt, setLastReadingAt] = useState(null)
   const [packetCount, setPacketCount] = useState(0)
   const [simBallMph, setSimBallMph] = useState(96)
@@ -148,6 +200,32 @@ export default function App() {
     ]
     return () => cleanups.forEach((cleanup) => cleanup())
   }, [acceptSwing, acceptRadar])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const [remoteSessions, remoteProfile, remoteClubhouse] = await Promise.all([
+          fetchSessions(),
+          fetchProfile(),
+          fetchClubhouse(),
+        ])
+        if (cancelled) return
+        setApiOnline(true)
+        setSessions(remoteSessions.length ? remoteSessions : fallbackSessions)
+        setProfile(remoteProfile || fallbackProfile)
+        setClubhouse(remoteClubhouse || fallbackClubhouse)
+      } catch {
+        if (cancelled) return
+        setApiOnline(false)
+        setSessions(fallbackSessions)
+        setProfile(fallbackProfile)
+        setClubhouse(fallbackClubhouse)
+        setNotice('Backend offline — clubhouse/profile are local until you start :8787.')
+      }
+    })()
+    return () => { cancelled = true }
+  }, [])
 
   /* Actively rebuild a fully populated swing while simulator sliders move. */
   useEffect(() => {
@@ -400,12 +478,52 @@ export default function App() {
     setNotice('Session initialized at zero. Connect the mat, then zero the sensors.')
   }
 
-  const endSession = () => {
+  const endSession = async () => {
     if (!activeSession) return
     if (sessionSwings.length) {
-      const completed = buildSessionSummary(sessionSwings, { club: activeSession.club, when: 'Just now' })
-      setSessions((previous) => [completed, ...previous])
-      setSelectedSession(completed)
+      const completed = buildSessionSummary(sessionSwings, {
+        club: activeSession.club,
+        when: 'Just now',
+      })
+      completed.rawSwings = sessionSwings.map((swing) => ({
+        impact_quality: swing.impact_quality,
+        estimated_distance_m: swing.estimated_distance_m,
+        ball_speed_mph: swing.ball_speed_mph,
+        club_speed_mph: swing.club_speed_mph,
+        club_speed_kmh: swing.club_speed_kmh,
+        attack_angle_deg: swing.attack_angle_deg,
+        swing_path_deg: swing.swing_path_deg,
+        heel_pressure_pct: swing.heel_pressure_pct,
+        center_pressure_pct: swing.center_pressure_pct,
+        toe_pressure_pct: swing.toe_pressure_pct,
+        impact_zone: swing.impact_zone,
+        radar_valid: swing.radar_valid,
+        radar_distance_mm: swing.radar_distance_mm,
+        source: swing.source,
+        label: swing.label,
+        timestamp_ms: swing.timestamp_ms,
+      }))
+
+      try {
+        const savedPayload = await saveSession(completed)
+        const saved = savedPayload.session || savedPayload
+        setApiOnline(true)
+        setSessions((previous) => [saved, ...previous.filter((item) => item.id !== saved.id)])
+        setSelectedSession(saved)
+        if (savedPayload.profile) setProfile(savedPayload.profile)
+        try {
+          const refreshed = await fetchClubhouse()
+          setClubhouse(refreshed)
+        } catch {
+          // keep current clubhouse if refresh fails
+        }
+        setNotice(`Session saved to backend · ${saved.swings} swings · ${saved.score} avg`)
+      } catch (error) {
+        setApiOnline(false)
+        setSessions((previous) => [completed, ...previous])
+        setSelectedSession(completed)
+        setNotice(error?.message || 'Backend unreachable — session kept in this browser only.')
+      }
     }
     setActiveSession(null)
     setArmed(false)
@@ -423,8 +541,134 @@ export default function App() {
   const sessionBest = liveSessionSummary?.bestCarryYds ?? 0
   const selectTab = (item) => {
     setTab(item)
-    window.setTimeout(() => (item === 'Sessions' ? document.querySelector('.recent-section') : document.querySelector('#top'))?.scrollIntoView({ behavior: 'smooth' }), 0)
+    window.setTimeout(() => {
+      const target = item === 'Sessions'
+        ? document.querySelector('.recent-section')
+        : item === 'Clubhouse'
+          ? document.querySelector('.clubhouse-hub')
+          : item === 'Profile'
+            ? document.querySelector('.profile-hub')
+            : document.querySelector('#top')
+      target?.scrollIntoView({ behavior: 'smooth' })
+    }, 0)
   }
+
+  const handleSaveProfile = async (nextProfile) => {
+    setSavingProfile(true)
+    try {
+      const saved = await saveProfile(nextProfile)
+      setProfile(saved)
+      setApiOnline(true)
+      const refreshed = await fetchClubhouse()
+      setClubhouse(refreshed)
+      setNotice('Profile saved to backend.')
+    } catch (error) {
+      setProfile((previous) => ({
+        ...previous,
+        ...nextProfile,
+        initials: nextProfile.displayName
+          ? nextProfile.displayName.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase()
+          : previous.initials,
+        goals: { ...previous.goals, ...(nextProfile.goals || {}) },
+      }))
+      setApiOnline(false)
+      setNotice(error?.message || 'Profile kept locally — backend offline.')
+    } finally {
+      setSavingProfile(false)
+    }
+  }
+
+  const handleJoinChallenge = async (id) => {
+    try {
+      const data = await joinChallenge(id)
+      setClubhouse(data.clubhouse)
+      setApiOnline(true)
+      setNotice('Joined clubhouse challenge.')
+    } catch (error) {
+      setClubhouse((previous) => ({
+        ...previous,
+        challenges: (previous.challenges || []).map((item) => (
+          item.id === id ? { ...item, joined: true } : item
+        )),
+      }))
+      setNotice(error?.message || 'Joined locally — backend offline.')
+    }
+  }
+
+  const handleBumpChallenge = async (id) => {
+    try {
+      const data = await bumpChallenge(id)
+      setClubhouse(data.clubhouse)
+      setApiOnline(true)
+      setNotice('Challenge progress +1.')
+    } catch (error) {
+      setClubhouse((previous) => ({
+        ...previous,
+        challenges: (previous.challenges || []).map((item) => (
+          item.id === id
+            ? { ...item, joined: true, progress: Math.min(item.target || 1, (item.progress || 0) + 1) }
+            : item
+        )),
+      }))
+      setNotice(error?.message || 'Progress saved locally.')
+    }
+  }
+
+  const handleRsvpEvent = async (id) => {
+    try {
+      const data = await rsvpClubhouseEvent(id)
+      setClubhouse(data.clubhouse)
+      setApiOnline(true)
+      setNotice('RSVP saved.')
+    } catch (error) {
+      setClubhouse((previous) => ({
+        ...previous,
+        events: (previous.events || []).map((item) => (
+          item.id === id && !item.rsvped
+            ? { ...item, rsvped: true, attendees: (item.attendees || 0) + 1 }
+            : item
+        )),
+      }))
+      setNotice(error?.message || 'RSVP kept locally.')
+    }
+  }
+
+  const handleFeedPost = async (text) => {
+    try {
+      const data = await postClubhouseFeed(text, profile.displayName)
+      setClubhouse(data.clubhouse)
+      setApiOnline(true)
+    } catch (error) {
+      setClubhouse((previous) => ({
+        ...previous,
+        feed: [
+          { id: `local_${Date.now()}`, author: profile.displayName, text, when: 'Just now', likes: 0 },
+          ...(previous.feed || []),
+        ],
+      }))
+      setNotice(error?.message || 'Post kept locally — backend offline.')
+    }
+  }
+
+  const handleLikePost = async (id) => {
+    try {
+      const post = await likeClubhousePost(id)
+      setClubhouse((previous) => ({
+        ...previous,
+        feed: (previous.feed || []).map((item) => (item.id === id ? post : item)),
+      }))
+    } catch {
+      setClubhouse((previous) => ({
+        ...previous,
+        feed: (previous.feed || []).map((item) => (
+          item.id === id ? { ...item, likes: (item.likes || 0) + 1 } : item
+        )),
+      }))
+    }
+  }
+
+  const greetingName = profile?.displayName?.split(/\s+/)[0] || 'golfer'
+  const navTabs = ['Lab', 'Sessions', 'Clubhouse', 'Profile']
 
   return (
     <main className="app-shell">
@@ -434,23 +678,60 @@ export default function App() {
           <span><b>STRIKE</b> LAB</span>
         </a>
         <nav className="desktop-nav" aria-label="Primary navigation">
-          {['Lab', 'Sessions', 'Progress'].map((item) => (
+          {navTabs.map((item) => (
             <button key={item} className={tab === item ? 'active' : ''} onClick={() => selectTab(item)}>{item}</button>
           ))}
         </nav>
-        <button className="profile-button" aria-label="Open profile"><span>CM</span><span className="profile-copy"><b>Carmine</b><small>12 day streak</small></span></button>
+        <button className="profile-button" aria-label="Open profile" onClick={() => selectTab('Profile')}>
+          <span>{profile?.initials || 'CM'}</span>
+          <span className="profile-copy"><b>{profile?.displayName || 'Golfer'}</b><small>{profile?.streakDays || 0} day streak</small></span>
+        </button>
       </header>
 
       <div className="page" id="top">
         <section className="welcome-row">
           <div>
-            <p className="eyebrow">TUESDAY · JULY 21</p>
-            <h1>Good afternoon, Carmine.</h1>
-            <p>Ready to dial in your next shot?</p>
+            <p className="eyebrow">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}</p>
+            <h1>Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, {greetingName}.</h1>
+            <p>
+              {tab === 'Clubhouse'
+                ? 'See the board, challenges, and range chatter.'
+                : tab === 'Profile'
+                  ? 'Edit your golfer card and goals.'
+                  : `Ready to dial in your next shot? ${apiOnline ? 'Backend online.' : 'Backend offline (local only).'}`}
+            </p>
           </div>
-          <button className={`primary-action ${activeSession ? 'session-live-button' : ''}`} onClick={activeSession ? endSession : startSession}><span>{activeSession ? '■' : '＋'}</span> {activeSession ? 'End session' : 'Start new session'}</button>
+          {tab === 'Lab' || tab === 'Sessions' ? (
+            <button className={`primary-action ${activeSession ? 'session-live-button' : ''}`} onClick={activeSession ? endSession : startSession}><span>{activeSession ? '■' : '＋'}</span> {activeSession ? 'End session' : 'Start new session'}</button>
+          ) : tab === 'Clubhouse' ? (
+            <button className="primary-action" onClick={() => selectTab('Lab')}>Back to lab</button>
+          ) : (
+            <button className="primary-action" onClick={() => selectTab('Lab')}>Open strike lab</button>
+          )}
         </section>
 
+        {tab === 'Profile' ? (
+          <ProfileView
+            profile={profile}
+            onSave={handleSaveProfile}
+            saving={savingProfile}
+            apiOnline={apiOnline}
+          />
+        ) : null}
+
+        {tab === 'Clubhouse' ? (
+          <ClubhouseView
+            clubhouse={clubhouse}
+            onJoinChallenge={handleJoinChallenge}
+            onBumpChallenge={handleBumpChallenge}
+            onPost={handleFeedPost}
+            onLike={handleLikePost}
+            onRsvpEvent={handleRsvpEvent}
+            apiOnline={apiOnline}
+          />
+        ) : null}
+
+        {tab === 'Lab' ? <>
         {activeSession ? <section className="active-session-card">
           <div><span className="recording-dot" /><div><p className="eyebrow">SESSION IN PROGRESS</p><h2>{activeSession.club} practice</h2></div></div>
           <div className="session-live-stats">
@@ -661,12 +942,14 @@ export default function App() {
             <button className="text-action">View full analysis <span>→</span></button>
           </article>
         </section>
+        </> : null}
 
+        {tab === 'Sessions' || tab === 'Lab' ? (
         <section className="recent-section">
           <div className="section-heading"><div><p className="eyebrow">YOUR ACTIVITY</p><h2>{tab === 'Sessions' ? 'All sessions' : 'Recent sessions'}</h2></div><button onClick={() => setTab(tab === 'Sessions' ? 'Lab' : 'Sessions')}>{tab === 'Sessions' ? 'Back to lab' : 'View all'} <span>→</span></button></div>
           {selectedSession ? <SessionSummaryDetail session={selectedSession} onClose={() => setSelectedSession(null)} /> : null}
           <div className="session-list">
-            {sessions.map((session, index) => (
+            {sessions.map((session) => (
               <article className="session-row" key={session.id}>
                 <span className="club-icon"><ClubIcon /></span>
                 <div className="session-name"><b>{session.club} practice</b><span>{session.when} · {session.swings} swings</span></div>
@@ -677,10 +960,16 @@ export default function App() {
             ))}
           </div>
         </section>
+        ) : null}
       </div>
 
       <nav className="mobile-nav" aria-label="Mobile navigation">
-        {['Lab', 'Sessions', 'Progress'].map((item) => <button key={item} onClick={() => selectTab(item)} className={tab === item ? 'active' : ''}><span>{item === 'Lab' ? '⌂' : item === 'Sessions' ? '◫' : '↗'}</span>{item}</button>)}
+        {navTabs.map((item) => (
+          <button key={item} onClick={() => selectTab(item)} className={tab === item ? 'active' : ''}>
+            <span>{item === 'Lab' ? '⌂' : item === 'Sessions' ? '◫' : item === 'Clubhouse' ? '◎' : '☺'}</span>
+            {item}
+          </button>
+        ))}
       </nav>
     </main>
   )

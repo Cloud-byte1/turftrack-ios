@@ -26,6 +26,24 @@ Open [http://localhost:5173](http://localhost:5173).
 Radar and mat are separate boards. Connect both in the lab — each uses its own
 COM port (or mat BLE + radar USB).
 
+## Backend (sessions, profile, clubhouse)
+
+```bash
+cd ../backend
+npm install
+npm run dev
+```
+
+API on [http://127.0.0.1:8787](http://127.0.0.1:8787). Vite proxies `/api`.
+
+App tabs:
+- **Lab** — live mat + radar + simulator
+- **Sessions** — saved practice history
+- **Clubhouse** — leaderboard, challenges, feed, bulletin
+- **Profile** — golfer card, goals, stats
+
+If the backend is down, the UI still works with local fallback data.
+
 ### Mat ESP (FSR / swing) — USB or BLE
 
 Mat firmware prints:
