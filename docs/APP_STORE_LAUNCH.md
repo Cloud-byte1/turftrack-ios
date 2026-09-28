@@ -59,6 +59,7 @@ Answer **No** when asked whether fairLie or its third-party partners use data fo
 - Select the Apple Developer Team in Xcode under **Signing & Capabilities**. No Team ID is committed to the repository.
 - Confirm the bundle ID is `com.fairlie.turftrack`.
 - Enable Sign in with Apple for the App ID and target.
+- Deploy the `apple-revoke` Edge Function ([`docs/supabase/functions/apple-revoke`](supabase/functions/apple-revoke/index.ts)) and set its `APPLE_TEAM_ID`, `APPLE_KEY_ID`, and `APPLE_PRIVATE_KEY` secrets. Deleting a Sign in with Apple account revokes its Apple tokens first and is refused if revocation fails.
 - Archive with a current App Store-supported Xcode and SDK.
 - Test the archive on a physical iPhone running the oldest supported major version where practical.
 - Increment the build number for every upload.

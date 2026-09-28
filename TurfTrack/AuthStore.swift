@@ -1,6 +1,7 @@
 import AuthenticationServices
 import Combine
 import Foundation
+import UIKit
 
 enum AuthProvider: String, Codable {
     case email
@@ -229,9 +230,33 @@ final class AuthStore: ObservableObject {
     /// (profile, sessions, posts, likes, RSVPs, challenge progress). App Review 5.1.1(v).
     func deleteAccount() async -> Bool {
         guard let config else { return false }
+        errorMessage = nil
+        var appleCode: String?
+        if session?.provider == .apple {
+            do {
+                appleCode = try await AppleReauthorizer().authorizationCode()
+            } catch {
+                if (error as? ASAuthorizationError)?.code != .canceled {
+                    errorMessage = "Confirm with Apple to delete your account. (\(error.localizedDescription))"
+                }
+                return false
+            }
+        }
         isWorking = true
         defer { isWorking = false }
         do {
+            if let appleCode, var tokens = AuthTokenStore.shared.current {
+                do {
+                    if tokens.expiresAt < Date().addingTimeInterval(60) {
+                        tokens = try await SupabaseAuthAPI(config: config).refresh(tokens.refreshToken)
+                        AuthTokenStore.shared.set(tokens)
+                    }
+                    try await SupabaseAuthAPI(config: config).revokeApple(authorizationCode: appleCode, accessToken: tokens.accessToken)
+                } catch {
+                    errorMessage = "Could not revoke Sign in with Apple, so your account was not deleted. Try again or contact support. (\(error.localizedDescription))"
+                    return false
+                }
+            }
             try await SupabaseREST(config: config).rpcVoid("delete_my_account")
             if let id = session?.id { LocalSessionStore.erase(id) }
             clearLocal()
@@ -415,5 +440,55 @@ final class AuthStore: ObservableObject {
                 errorMessage = error.localizedDescription
             }
         }
+    }
+}
+
+/// Shows the Sign in with Apple sheet again to get a fresh, single-use authorization code
+/// (valid for 5 minutes), which the server needs to revoke the user's Apple tokens.
+final class AppleReauthorizer: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
+    private var continuation: CheckedContinuation<String, Error>?
+    private var controller: ASAuthorizationController?
+    private var anchor = ASPresentationAnchor()
+
+    @MainActor
+    func authorizationCode() async throws -> String {
+        anchor = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first { $0.isKeyWindow } ?? ASPresentationAnchor()
+        let request = ASAuthorizationAppleIDProvider().createRequest()
+        request.requestedScopes = []
+        let controller = ASAuthorizationController(authorizationRequests: [request])
+        controller.delegate = self
+        controller.presentationContextProvider = self
+        self.controller = controller
+        return try await withCheckedThrowingContinuation { continuation in
+            self.continuation = continuation
+            controller.performRequests()
+        }
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        if let code = (authorization.credential as? ASAuthorizationAppleIDCredential)?
+            .authorizationCode
+            .flatMap({ String(data: $0, encoding: .utf8) }) {
+            finish(.success(code))
+        } else {
+            finish(.failure(AuthAPIError.server(0, "Apple did not return an authorization code.")))
+        }
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        finish(.failure(error))
+    }
+
+    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        anchor
+    }
+
+    private func finish(_ result: Result<String, Error>) {
+        continuation?.resume(with: result)
+        continuation = nil
+        controller = nil
     }
 }

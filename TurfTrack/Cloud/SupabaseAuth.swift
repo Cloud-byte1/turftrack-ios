@@ -126,8 +126,14 @@ struct SupabaseAuthAPI {
         _ = try? await post("logout", body: [:], bearer: accessToken)
     }
 
-    private func post(_ path: String, body: [String: Any], bearer: String? = nil) async throws -> [String: Any] {
-        var request = URLRequest(url: URL(string: "auth/v1/\(path)", relativeTo: config.url)!)
+    /// Asks the `apple-revoke` Edge Function to exchange a fresh Apple authorization code
+    /// and revoke the user's Apple tokens (App Review 5.1.1(v)). Must run before the account is deleted.
+    func revokeApple(authorizationCode: String, accessToken: String) async throws {
+        _ = try await post("apple-revoke", base: "functions/v1", body: ["code": authorizationCode], bearer: accessToken)
+    }
+
+    private func post(_ path: String, base: String = "auth/v1", body: [String: Any], bearer: String? = nil) async throws -> [String: Any] {
+        var request = URLRequest(url: URL(string: "\(base)/\(path)", relativeTo: config.url)!)
         request.httpMethod = "POST"
         request.setValue(config.anonKey, forHTTPHeaderField: "apikey")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

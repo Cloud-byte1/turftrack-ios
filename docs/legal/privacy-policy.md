@@ -44,7 +44,7 @@ fairLie has no analytics or advertising SDKs, does not show ads, does not track 
 
 ## Retention and deletion
 
-Account data is kept until you delete the relevant content or delete your account. You can delete your own Clubhouse posts. Choosing **Delete account** in Settings immediately deletes your Supabase Auth user and all data you own, including your profile, practice sessions, posts, likes, RSVPs, and challenge progress. This cannot be undone.
+Account data is kept until you delete the relevant content or delete your account. You can delete your own Clubhouse posts. Choosing **Delete account** in Settings immediately deletes your Supabase Auth user and all data you own, including your profile, practice sessions, posts, likes, RSVPs, and challenge progress. If you use Sign in with Apple, you confirm with Apple and fairLie revokes its Sign in with Apple tokens before the account is deleted. This cannot be undone.
 
 Guest data is kept on the iPhone until you erase guest data in Settings or delete the app. Sessions containing simulated swings are on-device data and follow the same on-device retention behavior.
 

@@ -83,7 +83,7 @@ enum LegalCopy {
         LegalSection(
             heading: "Your choices",
             body: """
-            You can edit your profile at any time from Settings. You can export a copy of your account record from Settings → Privacy & data. You can permanently delete your account and all associated data — profile, sessions, posts, likes, RSVPs, and challenge progress — from Settings → Delete account; deletion is immediate and cannot be undone. Guests can erase their guest profile and sessions from Settings → Erase guest data, or by deleting the app.
+            You can edit your profile at any time from Settings. You can export a copy of your account record from Settings → Privacy & data. You can permanently delete your account and all associated data — profile, sessions, posts, likes, RSVPs, and challenge progress — from Settings → Delete account; deletion is immediate and cannot be undone. Sign in with Apple accounts confirm with Apple first so fairLie can revoke its Apple tokens. Guests can erase their guest profile and sessions from Settings → Erase guest data, or by deleting the app.
             """
         ),
         LegalSection(
@@ -269,6 +269,12 @@ struct DeleteAccountView: View {
                             .autocorrectionDisabled()
                             .padding(12)
                             .background(Theme.paper, in: RoundedRectangle(cornerRadius: 12))
+                    }
+
+                    if auth.session?.provider == .apple {
+                        Text("You'll confirm with Apple so fairLie can revoke its Sign in with Apple access before deleting your account.")
+                            .font(.caption)
+                            .foregroundStyle(Theme.muted)
                     }
 
                     if let error = auth.errorMessage {
