@@ -13,6 +13,11 @@ I can’t create the account for you — you sign up, then we program against yo
 1. Dashboard → **SQL Editor** → New query.
 2. Paste everything from [`schema.sql`](./schema.sql).
 3. Click **Run**.
+4. Before shipping the iPhone app, run [`app_store_lockdown.sql`](./app_store_lockdown.sql)
+   the same way. It adds the events table, removes the dev-open write policies, and
+   routes profile edits, joins, likes, and RSVPs through narrow functions. After it,
+   the publishable key cannot update or delete rows directly; deleting sessions from
+   the backend needs `SUPABASE_SERVICE_ROLE_KEY`.
 
 ## 3. Copy API keys
 

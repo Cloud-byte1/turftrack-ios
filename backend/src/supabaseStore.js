@@ -1,5 +1,55 @@
 import { getSupabase } from './supabase.js'
 
+/** Calls an app_store_lockdown.sql function; runs `legacy` if that script has not been applied. */
+async function rpcOr(name, args, legacy) {
+  const sb = getSupabase()
+  const { data, error } = await sb.rpc(name, args)
+  if (error) {
+    if (error.code === 'PGRST202' || /Could not find the function/i.test(error.message || '')) return legacy()
+    throw error
+  }
+  return Array.isArray(data) ? data[0] ?? null : data
+}
+
+function mapChallengeRow(data) {
+  if (!data) return null
+  return {
+    id: data.id,
+    title: data.title,
+    detail: data.detail,
+    progress: data.progress,
+    target: data.target,
+    joined: data.joined,
+    reward: data.reward,
+  }
+}
+
+function mapFeedRow(data) {
+  if (!data) return null
+  return { id: data.id, author: data.author, text: data.text, when: data.when_label, likes: data.likes }
+}
+
+const FALLBACK_EVENTS = [
+  {
+    id: 'ev_tuesday',
+    title: 'Tuesday range night',
+    detail: 'Open bay with live mat + radar scoring.',
+    when: 'Tue 6:00–8:00 PM',
+    place: 'Bay 3 · Strike Lab Range',
+    attendees: 7,
+    rsvped: true,
+  },
+  {
+    id: 'ev_sat',
+    title: 'Saturday smash factor clinic',
+    detail: 'Radar-only session focused on ball speed.',
+    when: 'Sat 10:00 AM',
+    place: 'Bay 1',
+    attendees: 4,
+    rsvped: false,
+  },
+]
+
 function mapSessionRow(row) {
   if (!row) return null
   return {
@@ -166,27 +216,38 @@ export async function updateProfile(patch = {}) {
     updated_at: new Date().toISOString(),
   }
 
-  const { data, error } = await sb.from('profiles').update(row).eq('id', current.id).select('*').single()
-  if (error) throw error
-
-  await sb.from('clubhouse_members').update({
-    name: row.display_name,
-    handle: row.handle,
-    initials: row.initials,
-    handicap: row.handicap,
-    streak: row.streak_days,
-  }).eq('is_you', true)
+  const data = await rpcOr('update_profile', {
+    p_display_name: row.display_name,
+    p_handle: row.handle,
+    p_handicap: row.handicap,
+    p_bio: row.bio,
+    p_location: row.location,
+    p_preferred_clubs: row.preferred_clubs,
+    p_streak_days: row.streak_days,
+  }, async () => {
+    const { data: updated, error } = await sb.from('profiles').update(row).eq('id', current.id).select('*').single()
+    if (error) throw error
+    await sb.from('clubhouse_members').update({
+      name: row.display_name,
+      handle: row.handle,
+      initials: row.initials,
+      handicap: row.handicap,
+      streak: row.streak_days,
+    }).eq('is_you', true)
+    return updated
+  })
 
   return withSessionStats(mapProfileRow(data))
 }
 
 export async function getClubhouse() {
   const sb = getSupabase()
-  const [members, challenges, feed, announcements, profile] = await Promise.all([
+  const [members, challenges, feed, announcements, events, profile] = await Promise.all([
     sb.from('clubhouse_members').select('*').order('rank', { ascending: true }),
     sb.from('clubhouse_challenges').select('*'),
     sb.from('clubhouse_feed').select('*').order('created_at', { ascending: false }),
     sb.from('clubhouse_announcements').select('*').order('created_at', { ascending: false }),
+    sb.from('clubhouse_events').select('*').order('created_at', { ascending: true }),
     getProfile(),
   ])
 
@@ -234,26 +295,17 @@ export async function getClubhouse() {
       title: a.title,
       body: a.body,
     })),
-    events: [
-      {
-        id: 'ev_tuesday',
-        title: 'Tuesday range night',
-        detail: 'Open bay with live mat + radar scoring.',
-        when: 'Tue 6:00–8:00 PM',
-        place: 'Bay 3 · Strike Lab Range',
-        attendees: 7,
-        rsvped: true,
-      },
-      {
-        id: 'ev_sat',
-        title: 'Saturday smash factor clinic',
-        detail: 'Radar-only session focused on ball speed.',
-        when: 'Sat 10:00 AM',
-        place: 'Bay 1',
-        attendees: 4,
-        rsvped: false,
-      },
-    ],
+    events: !events.error && events.data?.length
+      ? events.data.map((e) => ({
+        id: e.id,
+        title: e.title,
+        detail: e.detail,
+        when: e.when_label,
+        place: e.place,
+        attendees: e.attendees,
+        rsvped: e.rsvped,
+      }))
+      : FALLBACK_EVENTS.map((e) => ({ ...e })),
     badges: [
       { id: 'b_streak', label: '12-day streak', icon: '🔥', earned: true },
       { id: 'b_radar', label: 'Radar locked', icon: '📡', earned: true },
@@ -266,62 +318,58 @@ export async function getClubhouse() {
 
 export async function bumpChallenge(challengeId) {
   const sb = getSupabase()
-  const { data: current, error: readError } = await sb
-    .from('clubhouse_challenges')
-    .select('*')
-    .eq('id', challengeId)
-    .maybeSingle()
-  if (readError) throw readError
-  if (!current) return null
-  const nextProgress = Math.min(current.target || 1, (current.progress || 0) + 1)
-  const { data, error } = await sb
-    .from('clubhouse_challenges')
-    .update({ joined: true, progress: nextProgress })
-    .eq('id', challengeId)
-    .select('*')
-    .maybeSingle()
-  if (error) throw error
-  return {
-    id: data.id,
-    title: data.title,
-    detail: data.detail,
-    progress: data.progress,
-    target: data.target,
-    joined: data.joined,
-    reward: data.reward,
-  }
+  const data = await rpcOr('log_challenge_progress', { p_id: challengeId }, async () => {
+    const { data: current, error: readError } = await sb
+      .from('clubhouse_challenges')
+      .select('*')
+      .eq('id', challengeId)
+      .maybeSingle()
+    if (readError) throw readError
+    if (!current) return null
+    const nextProgress = Math.min(current.target || 1, (current.progress || 0) + 1)
+    const { data: updated, error } = await sb
+      .from('clubhouse_challenges')
+      .update({ joined: true, progress: nextProgress })
+      .eq('id', challengeId)
+      .select('*')
+      .maybeSingle()
+    if (error) throw error
+    return updated
+  })
+  return mapChallengeRow(data)
 }
 
 export async function rsvpEvent(eventId) {
-  const house = await getClubhouse()
-  const event = (house.events || []).find((item) => item.id === eventId)
-  if (!event) return null
-  if (!event.rsvped) {
-    event.rsvped = true
-    event.attendees = (event.attendees || 0) + 1
-  }
-  return event
-}
-
-export async function joinChallenge(challengeId) {
-  const sb = getSupabase()
-  const { data, error } = await sb
-    .from('clubhouse_challenges')
-    .update({ joined: true })
-    .eq('id', challengeId)
-    .select('*')
-    .maybeSingle()
-  if (error) throw error
+  const data = await rpcOr('rsvp_event', { p_id: eventId }, async () => {
+    const event = FALLBACK_EVENTS.find((item) => item.id === eventId)
+    if (!event) return null
+    return { ...event, when_label: event.when, rsvped: true, attendees: event.attendees + (event.rsvped ? 0 : 1) }
+  })
   if (!data) return null
   return {
     id: data.id,
     title: data.title,
     detail: data.detail,
-    progress: data.progress,
-    target: data.target,
-    joined: data.joined,
-    reward: data.reward,
+    when: data.when_label,
+    place: data.place,
+    attendees: data.attendees,
+    rsvped: data.rsvped,
   }
+}
+
+export async function joinChallenge(challengeId) {
+  const sb = getSupabase()
+  const data = await rpcOr('join_challenge', { p_id: challengeId }, async () => {
+    const { data: updated, error } = await sb
+      .from('clubhouse_challenges')
+      .update({ joined: true })
+      .eq('id', challengeId)
+      .select('*')
+      .maybeSingle()
+    if (error) throw error
+    return updated
+  })
+  return mapChallengeRow(data)
 }
 
 export async function addFeedPost({ author, text }) {
@@ -346,21 +394,18 @@ export async function addFeedPost({ author, text }) {
 
 export async function likeFeedPost(postId) {
   const sb = getSupabase()
-  const { data: current, error: readError } = await sb.from('clubhouse_feed').select('*').eq('id', postId).maybeSingle()
-  if (readError) throw readError
-  if (!current) return null
-  const { data, error } = await sb
-    .from('clubhouse_feed')
-    .update({ likes: (current.likes || 0) + 1 })
-    .eq('id', postId)
-    .select('*')
-    .single()
-  if (error) throw error
-  return {
-    id: data.id,
-    author: data.author,
-    text: data.text,
-    when: data.when_label,
-    likes: data.likes,
-  }
+  const data = await rpcOr('like_post', { p_id: postId }, async () => {
+    const { data: current, error: readError } = await sb.from('clubhouse_feed').select('*').eq('id', postId).maybeSingle()
+    if (readError) throw readError
+    if (!current) return null
+    const { data: updated, error } = await sb
+      .from('clubhouse_feed')
+      .update({ likes: (current.likes || 0) + 1 })
+      .eq('id', postId)
+      .select('*')
+      .single()
+    if (error) throw error
+    return updated
+  })
+  return mapFeedRow(data)
 }
