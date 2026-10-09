@@ -37,13 +37,13 @@ The iPhone app gets a fresh Apple authorization code and calls the
 If the function fails, the account is not deleted, so deploy it before shipping.
 
 1. developer.apple.com → Certificates, IDs & Profiles → **Keys** → **+** → enable
-   **Sign in with Apple**, configure it with the `com.fairlie.turftrack` App ID, and
+   **Sign in with Apple**, configure it with the `com.fairlie.app` App ID, and
    download `AuthKey_<KEY_ID>.p8` (it can only be downloaded once).
 2. Dashboard → **Edge Functions** → **Deploy a new function** → **Via Editor**, name it
    `apple-revoke`, paste `functions/apple-revoke/index.ts`, and deploy
    (or `supabase functions deploy apple-revoke`). Leave JWT verification on.
 3. Edge Functions → **Secrets**: add `APPLE_TEAM_ID`, `APPLE_KEY_ID`, and `APPLE_PRIVATE_KEY`
-   (the full `.p8` contents). `APPLE_CLIENT_ID` is optional and defaults to `com.fairlie.turftrack`.
+   (the full `.p8` contents). `APPLE_CLIENT_ID` is optional and defaults to `com.fairlie.app`.
 
 ## 3. Copy API keys
 

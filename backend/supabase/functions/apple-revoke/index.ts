@@ -9,7 +9,7 @@
 //   APPLE_TEAM_ID      10-character Apple Developer Team ID
 //   APPLE_KEY_ID       Key ID of a key with "Sign in with Apple" enabled
 //   APPLE_PRIVATE_KEY  Full contents of the downloaded AuthKey_<KEY_ID>.p8 file
-//   APPLE_CLIENT_ID    Optional; defaults to the app bundle ID com.fairlie.turftrack
+//   APPLE_CLIENT_ID    Optional; defaults to the app bundle ID com.fairlie.app
 // SUPABASE_URL and SUPABASE_ANON_KEY are provided automatically.
 
 const APPLE = "https://appleid.apple.com";
@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
   const teamId = Deno.env.get("APPLE_TEAM_ID");
   const keyId = Deno.env.get("APPLE_KEY_ID");
   const privateKey = Deno.env.get("APPLE_PRIVATE_KEY");
-  const clientId = Deno.env.get("APPLE_CLIENT_ID") ?? "com.fairlie.turftrack";
+  const clientId = Deno.env.get("APPLE_CLIENT_ID") ?? "com.fairlie.app";
   if (!teamId || !keyId || !privateKey) {
     return json({ error: "Sign in with Apple revocation is not configured on the server." }, 500);
   }

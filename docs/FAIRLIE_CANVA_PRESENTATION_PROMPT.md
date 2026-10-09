@@ -28,7 +28,7 @@ You are a product designer and pitch-deck writer for **fairLie**, a golf strike-
 | **Name** | fairLie (lowercase f, capital L) |
 | **Tagline** | Train your strike. Own your game. |
 | **App Store subtitle** | Golf strike & swing training |
-| **Bundle ID** | com.fairlie.turftrack |
+| **Bundle ID** | com.fairlie.app |
 
 ### Colors (use hex in all designs)
 
