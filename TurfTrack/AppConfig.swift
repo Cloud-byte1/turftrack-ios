@@ -5,7 +5,7 @@ import Foundation
 enum AppConfig {
     static let appName = "fairLie"
     static let subtitle = "Golf strike & swing training"
-    static let bundleIdentifier = "com.fairlie.turftrack"
+    static let bundleIdentifier = "com.fairlie.app"
 
     /// Served by GitHub Pages from `docs/` on the `main` branch of Cloud-byte1/turftrack-ios.
     static let supportURL = URL(string: "https://cloud-byte1.github.io/turftrack-ios/support/")!

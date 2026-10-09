@@ -329,7 +329,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = fairLie;
+				INFOPLIST_KEY_CFBundleDisplayName = FairLie;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "fairLie connects to your GolfMat and radar sensor over Bluetooth to show live strike and ball-speed data.";
 				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "fairLie connects to your GolfMat and radar sensor over Bluetooth to show live strike and ball-speed data.";
@@ -341,7 +341,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.fairlie.turftrack;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fairlie.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -362,7 +362,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = fairLie;
+				INFOPLIST_KEY_CFBundleDisplayName = FairLie;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "fairLie connects to your GolfMat and radar sensor over Bluetooth to show live strike and ball-speed data.";
 				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "fairLie connects to your GolfMat and radar sensor over Bluetooth to show live strike and ball-speed data.";
@@ -374,7 +374,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.fairlie.turftrack;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fairlie.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
