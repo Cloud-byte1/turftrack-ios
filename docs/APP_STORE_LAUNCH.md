@@ -70,7 +70,7 @@ Answer **No** when asked whether fairLie or its third-party partners use data fo
 - Marketing URL: `https://cloud-byte1.github.io/turftrack-ios/`
 - Privacy Policy URL: `https://cloud-byte1.github.io/turftrack-ios/privacy/`
 - Terms URL where requested: `https://cloud-byte1.github.io/turftrack-ios/terms/`
-- Support email: `support@fairlie.app`
+- Support email: `fairliemat@gmail.com`
 - State that the app requires iOS 16 or later.
 - Use screenshots of current functionality and label simulated results clearly.
 - Answer the age-rating questionnaire to disclose user-generated Clubhouse content.

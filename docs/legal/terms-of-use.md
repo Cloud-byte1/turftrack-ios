@@ -54,4 +54,4 @@ We may update these terms and will revise the effective date on this page. Conti
 
 ## Contact
 
-Questions can be sent to [support@fairlie.app](mailto:support@fairlie.app).
+Questions can be sent to [fairliemat@gmail.com](mailto:fairliemat@gmail.com).

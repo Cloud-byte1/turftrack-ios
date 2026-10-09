@@ -9,14 +9,14 @@ enum AppConfig {
 
     /// Served by GitHub Pages from `docs/` on the `main` branch of Cloud-byte1/turftrack-ios.
     static let supportURL = URL(string: "https://cloud-byte1.github.io/turftrack-ios/support/")!
-    static let marketingURL = URL(string: "https://cloud-byte1.github.io/turftrack-ios/")!
+    static let marketingURL = URL(string: "https://spikedgolfmat.com/")!
     static let privacyPolicyURL = URL(string: "https://cloud-byte1.github.io/turftrack-ios/privacy/")!
     static let termsOfUseURL = URL(string: "https://cloud-byte1.github.io/turftrack-ios/terms/")!
 
     /// Apple's standard EULA link, used when no custom terms are supplied.
     static let appleStandardEULAURL = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!
 
-    static let supportEmail = "support@fairlie.app"
+    static let supportEmail = "fairliemat@gmail.com"
 
     static var version: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
