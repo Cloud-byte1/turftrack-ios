@@ -1,0 +1,66 @@
+---
+permalink: /reset/
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reset password · fairLie</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, system-ui, sans-serif; background: #f7f4ec; color: #1d2a22; }
+    main { max-width: 420px; margin: 0 auto; padding: 40px 16px; }
+    h1 { color: #1f6b43; margin-bottom: 4px; }
+    label { display: block; font-size: 14px; font-weight: 600; margin: 16px 0 6px; }
+    input { width: 100%; box-sizing: border-box; padding: 12px; font-size: 16px; border: 1px solid #cfd8d1; border-radius: 12px; }
+    button { width: 100%; margin-top: 20px; padding: 14px; font-size: 16px; font-weight: 700; color: #fff; background: #2e8b57; border: 0; border-radius: 999px; }
+    button:disabled { opacity: .5; }
+    .msg { margin-top: 16px; font-size: 14px; }
+    .err { color: #b3261e; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>fairLie</h1>
+  <p>Choose a new password for your account.</p>
+  <form id="form" hidden>
+    <label for="pw">New password</label>
+    <input id="pw" type="password" minlength="6" autocomplete="new-password" required>
+    <label for="pw2">Confirm password</label>
+    <input id="pw2" type="password" minlength="6" autocomplete="new-password" required>
+    <button id="save" type="submit">Save password</button>
+  </form>
+  <p id="msg" class="msg">Checking your reset link…</p>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+  // The publishable key is the same one shipped in the app; row-level security protects the data.
+  const client = supabase.createClient("https://jziszjpmdncmqrapgeub.supabase.co", "sb_publishable_DMAjk_Tj87ObossoZ4-S8A_g3DJoX_-");
+  const form = document.getElementById("form");
+  const msg = document.getElementById("msg");
+  const show = (text, isError) => { msg.textContent = text; msg.className = "msg" + (isError ? " err" : ""); };
+
+  const params = new URLSearchParams(location.hash.slice(1));
+  if (params.get("error_description")) {
+    show(params.get("error_description") + ". Request a new link from Forgot password in the app.", true);
+  } else {
+    client.auth.getSession().then(({ data }) => {
+      if (data.session) { form.hidden = false; show(""); }
+      else show("This reset link is invalid or has expired. Request a new one from Forgot password in the app.", true);
+    });
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const pw = document.getElementById("pw").value;
+    if (pw !== document.getElementById("pw2").value) return show("Passwords don't match.", true);
+    document.getElementById("save").disabled = true;
+    const { error } = await client.auth.updateUser({ password: pw });
+    if (error) { document.getElementById("save").disabled = false; return show(error.message, true); }
+    await client.auth.signOut();
+    form.hidden = true;
+    show("Password updated. Open fairLie and sign in with your new password.");
+  });
+</script>
+</body>
+</html>

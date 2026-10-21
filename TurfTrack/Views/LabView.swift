@@ -70,7 +70,7 @@ struct LabView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day()).uppercased())
                     .eyebrowStyle()
-                Text("Good afternoon, \(auth.user.name).")
+                Text("\(greeting), \(auth.user.name).")
                     .font(.system(size: 28, weight: .bold))
                     .foregroundStyle(Theme.ink)
                 Text("Ready to dial in your next shot?")
@@ -90,6 +90,14 @@ struct LabView: View {
             }
         }
         .padding(.top, 12)
+    }
+
+    private var greeting: String {
+        switch Calendar.current.component(.hour, from: Date()) {
+        case 5..<12: return "Good morning"
+        case 12..<17: return "Good afternoon"
+        default: return "Good evening"
+        }
     }
 
     private var activeSessionCard: some View {

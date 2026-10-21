@@ -189,6 +189,8 @@ struct LoginView: View {
 
 struct ProfileSetupView: View {
     @EnvironmentObject private var auth: AuthStore
+    @State private var name = ""
+    @State private var setupError: String?
     @State private var city = ""
     @State private var handicap = 18.0
     @State private var skill = "Beginner"
@@ -203,6 +205,16 @@ struct ProfileSetupView: View {
                 Text("Build your golfer card").font(.system(size: 28, weight: .bold))
                 Text("This unlocks Clubhouse, challenges, and your public profile.")
                     .foregroundStyle(Theme.muted)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Display name").font(.caption.weight(.semibold)).foregroundStyle(Theme.muted)
+                    TextField("Shown on the leaderboard and your posts", text: $name)
+                        .textInputAutocapitalization(.words)
+                        .padding(12)
+                        .background(Theme.cream, in: RoundedRectangle(cornerRadius: 12))
+                }
+                .padding(16)
+                .fairCard()
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Home course / city").font(.caption.weight(.semibold)).foregroundStyle(Theme.muted)
@@ -251,12 +263,23 @@ struct ProfileSetupView: View {
                 .padding(16)
                 .fairCard()
 
-                if let error = auth.errorMessage {
+                if let error = setupError ?? auth.errorMessage {
                     Text(error).font(.caption).foregroundStyle(Theme.danger)
                 }
 
                 Button {
-                    auth.completeSetup(city: city, handicap: handicap, skill: skill, bag: Array(bag))
+                    let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard trimmed.count >= 2 else {
+                        setupError = "Choose a display name of at least 2 characters."
+                        return
+                    }
+                    // Name and city are visible to other golfers, so they get the same screening as posts.
+                    if let problem = ContentFilter.problem(in: [trimmed, city].joined(separator: "\n")) {
+                        setupError = problem
+                        return
+                    }
+                    setupError = nil
+                    auth.completeSetup(name: trimmed, city: city, handicap: handicap, skill: skill, bag: Array(bag))
                 } label: {
                     HStack(spacing: 8) {
                         if auth.isWorking { ProgressView().tint(.white) }
@@ -275,6 +298,11 @@ struct ProfileSetupView: View {
         .background(Theme.cream.ignoresSafeArea())
         .onAppear {
             if let saved = auth.session?.city, !saved.isEmpty { city = saved }
+            if name.isEmpty { name = auth.suggestedDisplayName }
+        }
+        // Sign in with Apple patches the name in just after the profile loads.
+        .onChange(of: auth.user.name) { _ in
+            if name.isEmpty { name = auth.suggestedDisplayName }
         }
     }
 }

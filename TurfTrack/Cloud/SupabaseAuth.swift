@@ -119,7 +119,9 @@ struct SupabaseAuthAPI {
     }
 
     func sendPasswordReset(email: String) async throws {
-        _ = try await post("recover", body: ["email": email])
+        let redirect = AppConfig.passwordResetURL.absoluteString
+            .addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? ""
+        _ = try await post("recover?redirect_to=\(redirect)", body: ["email": email])
     }
 
     func signOut(accessToken: String) async {

@@ -243,6 +243,15 @@ struct IDArg: Encodable {
 
 struct NoArgs: Encodable {}
 
+struct ReportArgs: Encodable {
+    var p_id: String
+    var p_reason: String
+}
+
+struct ReportReceipt: Decodable {
+    var id: String
+}
+
 struct Announcement: Codable, Identifiable, Equatable {
     var id: String
     var title: String

@@ -22,6 +22,8 @@ struct ClubhouseView: View {
     @State private var posting = false
     @State private var showRules = false
     @State private var showTerms = false
+    @State private var reportedPost: FeedPost?
+    @State private var reportSent = false
     /// Set once the golfer accepts the Clubhouse rules before their first post (App Review 1.2).
     @AppStorage("fairlie.clubhouseRulesAccepted") private var rulesAccepted = false
 
@@ -63,6 +65,19 @@ struct ClubhouseView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Posts are public to other golfers. There is zero tolerance for abusive, hateful, sexual, or objectionable content, or for sharing personal contact details. Reported posts are reviewed, and accounts that break these rules can be removed.")
+        }
+        .alert(reportSent ? "Report received" : "Report not sent", isPresented: Binding(
+            get: { reportedPost != nil },
+            set: { if !$0 { reportedPost = nil } }
+        ), presenting: reportedPost) { post in
+            if !reportSent {
+                Button("Email support") { emailReport(post) }
+            }
+            Button("OK", role: .cancel) {}
+        } message: { _ in
+            Text(reportSent
+                 ? "Thanks. The post is hidden for you and our team will review it within 24 hours."
+                 : "The post is hidden for you, but the report couldn't reach the Clubhouse. Check your connection or email support.")
         }
         .sheet(isPresented: $showTerms) {
             LegalDocumentView(document: .terms) { showTerms = false }
@@ -407,7 +422,13 @@ struct ClubhouseView: View {
     }
 
     private func report(_ post: FeedPost) {
-        store.cloud.hide(post)
+        Task {
+            reportSent = await store.cloud.report(post)
+            reportedPost = post
+        }
+    }
+
+    private func emailReport(_ post: FeedPost) {
         var components = URLComponents()
         components.scheme = "mailto"
         components.path = AppConfig.supportEmail

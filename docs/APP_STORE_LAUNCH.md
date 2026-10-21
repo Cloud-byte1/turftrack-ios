@@ -36,7 +36,12 @@ The Clubhouse feed supports Report, Hide, Block author, and deletion of a golfer
 
 Objectionable content is filtered twice: the app screens posts, display names, bios, and cities (`ContentFilter` in `TurfTrack/Cloud/CloudModels.swift`), and the server rejects anything that slips through (`docs/supabase/content_filter.sql`, which must be run once in the Supabase SQL editor). The filter also blocks links, email addresses, and phone numbers. Users agree to the Terms of Use, with zero tolerance for abusive content, on the sign-in screen, and must accept the Clubhouse rules before their first post.
 
-**Open blocker:** `support@fairlie.app` does not receive mail because `fairlie.app` is not registered. Report post, Contact support, and the policy pages all use it. Replace it with a working inbox before submitting (`AppConfig.supportEmail`, `docs/support.md`, `docs/legal/*.md`).
+Reports are stored in Supabase (`post_reports`, created by `docs/supabase/reports.sql`) so they arrive even on a device with no Mail account; emailing support is offered only as a fallback. Check open reports daily and act within 24 hours.
+
+## Email delivery and password reset
+
+- Email sign-up requires confirmation. Supabase's built-in mailer only delivers to the project team's own addresses, so configure custom SMTP (Auth → SMTP Settings) or turn off **Confirm email** before review. Test with an address outside the team.
+- Forgot password sends a link to `https://cloud-byte1.github.io/turftrack-ios/reset/` (`docs/reset/index.html`). Add that URL under Auth → URL Configuration → Redirect URLs.
 
 ## Bluetooth and measurement wording
 
@@ -96,7 +101,8 @@ SIMULATED. Hardware is not required to review the practice flow.
 CLUBHOUSE
 The leaderboard, feed, challenges, and events require an account. Use the demo
 account below to review these features. Feed posts support Report, Hide, Block
-author, and deletion of the user's own posts.
+author, and deletion of the user's own posts. Reports are stored server-side and
+reviewed within 24 hours.
 
 SIGN-IN AND DELETION
 The app supports email/password and Sign in with Apple. Account deletion is at
@@ -123,9 +129,10 @@ Password: <enter working demo password>
 3. Verify email/password and Sign in with Apple on a physical device.
 4. Verify Settings account deletion with a disposable Supabase account.
 5. Verify Report, Hide, Block, and own-post deletion in the Clubhouse. Confirm the Clubhouse rules prompt appears before the first post and that a post with blocked language is refused.
-6. Run `docs/supabase/content_filter.sql` in Supabase and replace `support@fairlie.app` with a working inbox.
-7. Test GolfMat connection, optional radar connection, and automatic reconnection.
-8. Confirm simulated sessions remain local and do not appear in rankings.
-9. Complete the privacy and age-rating questionnaires.
-10. Add current screenshots, review notes, and a working Clubhouse demo account.
-11. Upload to TestFlight and test the exact build before submitting it for review.
+6. Run `docs/supabase/content_filter.sql` and `docs/supabase/reports.sql` in Supabase, then work through `docs/supabase/review_prep.sql` (remove test accounts, clear expired challenges, add an event, post from the team account).
+7. Configure SMTP (or disable email confirmation) and add the reset URL to the redirect allow-list; test sign-up and Forgot password with an outside address.
+8. Test GolfMat connection, optional radar connection, and automatic reconnection.
+9. Confirm simulated sessions remain local and do not appear in rankings.
+10. Complete the privacy and age-rating questionnaires.
+11. Add current screenshots, review notes, and a working Clubhouse demo account.
+12. Upload to TestFlight and test the exact build before submitting it for review.

@@ -179,9 +179,19 @@ final class AuthStore: ObservableObject {
 
     // MARK: - Profile
 
-    func completeSetup(city: String, handicap: Double, skill: String, bag: [String]) {
+    /// The name to prefill in profile setup. Empty when the stored name is just the email prefix,
+    /// so an email username is never published without the golfer choosing it.
+    var suggestedDisplayName: String {
+        let name = profile?.displayName ?? ""
+        let emailPrefix = session?.email.components(separatedBy: "@").first ?? ""
+        return name.caseInsensitiveCompare(emailPrefix) == .orderedSame || name == "Golfer" ? "" : name
+    }
+
+    func completeSetup(name: String, city: String, handicap: Double, skill: String, bag: [String]) {
         run { _ in
             try await self.patchProfile(ProfileRow(
+                displayName: String(name.prefix(60)),
+                initials: Self.initials(name),
                 handicap: handicap,
                 preferredClubs: bag.isEmpty ? nil : bag,
                 location: city,

@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import OSLog
 
 /// Supabase-backed sessions and Clubhouse for the signed-in golfer. Row-level security
 /// scopes sessions, challenge progress, RSVPs, and likes to `auth.uid()`.
@@ -31,6 +32,11 @@ final class CloudSync: ObservableObject {
     private static let hiddenKey = "fairlie.hiddenPosts"
     private static let blockedKey = "fairlie.blockedAuthors"
     private static let blockedUsersKey = "fairlie.blockedUsers"
+    /// Only golfers with saved GolfMat swings are ranked, so new accounts don't fill the board with zeros.
+    private static let rankedMembers = [
+        URLQueryItem(name: "swings", value: "gt.0"),
+        URLQueryItem(name: "order", value: "score.desc"),
+    ]
 
     init(config: SupabaseConfig? = SupabaseConfig.load()) {
         client = config.map { SupabaseREST(config: $0) }
@@ -83,6 +89,19 @@ final class CloudSync: ObservableObject {
         }
     }
 
+    /// Files a report for moderation (`docs/supabase/reports.sql`) and hides the post. App Review 1.2.
+    func report(_ post: FeedPost, reason: String = "") async -> Bool {
+        hide(post)
+        guard let client else { return false }
+        do {
+            let _: [ReportReceipt] = try await client.rpc("report_post", ReportArgs(p_id: post.id, p_reason: String(reason.prefix(500))))
+            return true
+        } catch {
+            cloudLog.error("report_post failed: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+    }
+
     func unblockAll() {
         blockedAuthors = []
         blockedUserIDs = []
@@ -113,7 +132,7 @@ final class CloudSync: ObservableObject {
         status = .syncing
         do {
             async let sessionRows: [SessionRow] = client.select("sessions", [URLQueryItem(name: "order", value: "created_at.desc")])
-            async let memberRows: [ClubMember] = client.select("clubhouse_members", [URLQueryItem(name: "order", value: "score.desc")])
+            async let memberRows: [ClubMember] = client.select("clubhouse_members", Self.rankedMembers)
             async let feedRows: [FeedPost] = client.select("clubhouse_feed", [URLQueryItem(name: "order", value: "created_at.desc")])
             async let announcementRows: [Announcement] = client.select("clubhouse_announcements", [URLQueryItem(name: "order", value: "created_at.desc")])
             async let challengeRows: [ClubChallenge] = client.rpc("list_challenges", NoArgs())
@@ -139,7 +158,7 @@ final class CloudSync: ObservableObject {
             guard let saved = rows.first?.practiceSession else { return nil }
             sessions.insert(saved, at: 0)
             stats = CloudProfileStats(sessions: sessions)
-            members = (try? await client.select("clubhouse_members", [URLQueryItem(name: "order", value: "score.desc")])) ?? members
+            members = (try? await client.select("clubhouse_members", Self.rankedMembers)) ?? members
             status = .synced(Date())
             return saved
         } catch {

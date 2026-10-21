@@ -12,6 +12,8 @@ enum AppConfig {
     static let marketingURL = URL(string: "https://spikedgolfmat.com/")!
     static let privacyPolicyURL = URL(string: "https://cloud-byte1.github.io/turftrack-ios/privacy/")!
     static let termsOfUseURL = URL(string: "https://cloud-byte1.github.io/turftrack-ios/terms/")!
+    /// Where the password-reset email lands; must be in Supabase Auth → URL Configuration → Redirect URLs.
+    static let passwordResetURL = URL(string: "https://cloud-byte1.github.io/turftrack-ios/reset/")!
 
     /// Apple's standard EULA link, used when no custom terms are supplied.
     static let appleStandardEULAURL = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!
