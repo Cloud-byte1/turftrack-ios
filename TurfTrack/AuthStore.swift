@@ -105,6 +105,10 @@ final class AuthStore: ObservableObject {
             errorMessage = "Enter your name to create an account."
             return
         }
+        if let problem = ContentFilter.problem(in: trimmed) {
+            errorMessage = problem
+            return
+        }
         guard normalized.contains("@") else {
             errorMessage = "Enter a valid email address."
             return
@@ -276,6 +280,8 @@ final class AuthStore: ObservableObject {
         "fairlie.preferences",
         "fairlie.hiddenPosts",
         "fairlie.blockedAuthors",
+        "fairlie.blockedUsers",
+        "fairlie.clubhouseRulesAccepted",
         "fairlie.accounts",
         "fairlie.sessionUserId",
     ]

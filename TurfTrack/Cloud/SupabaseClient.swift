@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 /// Reads `Config/Supabase.plist` from the app bundle. That file is gitignored;
 /// copy `Config/Supabase.example.plist` and fill in your project URL + publishable key.
@@ -32,12 +33,28 @@ enum SupabaseError: LocalizedError {
         return false
     }
 
+    /// Set by the `content_filter.sql` triggers when a post or name uses blocked language.
+    var isContentRejected: Bool {
+        if case .http(_, let body) = self { return body.contains("fairlie_content_filter") }
+        return false
+    }
+
+    /// User-facing text. The raw response is written to the device log in `SupabaseREST.send`.
     var errorDescription: String? {
         switch self {
-        case .http(let code, let body): return "Supabase \(code): \(body.prefix(160))"
+        case .http(let code, _):
+            if isContentRejected { return ContentFilter.rejectionMessage }
+            switch code {
+            case 401, 403: return "Your sign-in expired. Sign out and back in to keep syncing."
+            case 429: return "Too many requests right now. Try again in a minute."
+            case 500...: return "The fairLie cloud is having trouble. Try again shortly."
+            default: return "Something went wrong syncing with the fairLie cloud. Try again."
+            }
         }
     }
 }
+
+let cloudLog = Logger(subsystem: "com.fairlie.turftrack", category: "cloud")
 
 /// Minimal PostgREST client — enough for the Strike Lab tables in `backend/supabase/schema.sql`.
 struct SupabaseREST {
@@ -99,7 +116,9 @@ struct SupabaseREST {
             return try await send(table, method: method, query: query, body: body, retried: true)
         }
         guard (200..<300).contains(status) else {
-            throw SupabaseError.http(status, String(data: data, encoding: .utf8) ?? "")
+            let body = String(data: data, encoding: .utf8) ?? ""
+            cloudLog.error("\(method, privacy: .public) \(table, privacy: .public) failed \(status): \(body, privacy: .private)")
+            throw SupabaseError.http(status, body)
         }
         let trimmed = data.drop { $0 == 0x20 || $0 == 0x0A }
         if trimmed.isEmpty || trimmed.first != UInt8(ascii: "[") { return [] }

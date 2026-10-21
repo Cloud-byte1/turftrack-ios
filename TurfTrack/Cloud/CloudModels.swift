@@ -295,3 +295,66 @@ enum CloudDates {
         return dayTime.string(from: date)
     }
 }
+
+/// Screens Clubhouse posts and public profile text before upload (App Review 1.2).
+/// `docs/supabase/content_filter.sql` enforces the same rules on the server.
+enum ContentFilter {
+    static let rejectionMessage = "That includes language or personal contact details the Clubhouse doesn't allow. Please edit it and try again."
+
+    /// Whole words that are always rejected.
+    private static let blockedWords: Set<String> = [
+        "asshole", "assholes", "bastard", "bitch", "bitches", "bullshit", "chink", "cock", "cunt", "dick", "dicks", "dyke",
+        "fag", "faggot", "kike", "kys", "nigga", "nigger", "porn", "pussy", "rape", "rapist",
+        "retard", "retarded", "shit", "slut", "sluts", "spic", "tranny", "twat", "wanker", "whore",
+    ]
+
+    /// Stems rejected at the start of any word, e.g. "fucking", "shitty".
+    private static let blockedStems = ["fuck", "motherfuck", "shit", "cunt", "nigg", "fagg", "whore"]
+
+    private static let blockedPhrases = ["kill yourself", "kill urself"]
+
+    // Entries with no doubled letters also match stretched spellings ("fuuuck"). Entries that
+    // have doubles are matched as written, so collapsing never turns "Niger" into a hit.
+    private static let stretchableWords = blockedWords.filter { collapseRepeats($0) == $0 }
+    private static let stretchableStems = blockedStems.filter { collapseRepeats($0) == $0 }
+
+    /// Returns the rejection message for text that breaks the rules, or nil if it's fine.
+    static func problem(in text: String) -> String? {
+        let lowered = text.lowercased()
+        if containsContactDetails(lowered) { return rejectionMessage }
+        let normalized = String(lowered.map { leet[$0] ?? $0 })
+        let words = normalized
+            .components(separatedBy: CharacterSet.letters.inverted)
+            .filter { !$0.isEmpty }
+        for word in words {
+            let collapsed = collapseRepeats(word)
+            if blockedWords.contains(word) || stretchableWords.contains(collapsed)
+                || blockedStems.contains(where: word.hasPrefix)
+                || stretchableStems.contains(where: collapsed.hasPrefix) {
+                return rejectionMessage
+            }
+        }
+        let spaced = words.joined(separator: " ")
+        if blockedPhrases.contains(where: spaced.contains) { return rejectionMessage }
+        return nil
+    }
+
+    private static let leet: [Character: Character] = [
+        "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "@": "a", "$": "s",
+    ]
+
+    /// "fuuuuck" → "fuck", so stretched spellings still match.
+    private static func collapseRepeats(_ word: String) -> String {
+        var result = ""
+        for char in word where result.last != char { result.append(char) }
+        return result
+    }
+
+    /// Links, emails, and phone numbers: the Clubhouse asks for no personal info.
+    private static func containsContactDetails(_ text: String) -> Bool {
+        if text.range(of: #"https?://|www\.|\b[a-z0-9-]+\.(com|net|org|io|app|co|me|ly)\b"#, options: .regularExpression) != nil { return true }
+        if text.range(of: #"[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}"#, options: .regularExpression) != nil { return true }
+        let digits = text.filter(\.isNumber)
+        return digits.count >= 7 && text.range(of: #"\d[\d\s().-]{6,}\d"#, options: .regularExpression) != nil
+    }
+}

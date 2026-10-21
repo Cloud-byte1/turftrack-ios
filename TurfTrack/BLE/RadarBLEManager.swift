@@ -54,7 +54,7 @@ final class RadarBLEManager: NSObject, ObservableObject {
         case .disconnected: return "Radar offline"
         case .scanning: return "Scanning for radar…"
         case .connecting: return "Connecting radar…"
-        case .connected: return lastValid == nil ? "Radar linked" : "Radar motion locked"
+        case .connected: return lastValid == nil ? "Radar connected" : "Radar reading ball speed"
         case .unsupported: return "Bluetooth unavailable"
         }
     }
@@ -65,25 +65,40 @@ final class RadarBLEManager: NSObject, ObservableObject {
         }
         if let errorMessage { return errorMessage }
         switch connectionState {
-        case .disconnected: return "Tap Radar BLE to link the XM125 ESP32."
-        case .scanning: return "Looking for GolfMatRadar / service 0xAB20…"
-        case .connecting: return "Linking to GolfMatRadar…"
+        case .disconnected: return "Tap Connect to link your radar sensor for measured ball speed."
+        case .scanning: return "Looking for your radar sensor…"
+        case .connecting: return "Linking to your radar sensor…"
         case .connected:
             if let latest {
-                return String(format: "%.1f mph · %d mm · intra %d", latest.speedMph, latest.distanceMm, latest.intraScore)
+                return String(format: "Last reading %.1f mph", latest.speedMph)
             }
             return "Waiting for radar readings…"
         case .unsupported: return "Enable Bluetooth and try again."
         }
     }
 
+    /// Set when Connect was tapped before Bluetooth finished powering up.
+    private var connectWhenReady = false
+
     override init() {
         super.init()
+        // Creating the central is what shows the Bluetooth permission prompt, so wait for
+        // the first Connect tap. A device connected before already has permission.
+        if memory.autoReconnect { makeCentral() }
+    }
+
+    private func makeCentral() {
+        guard central == nil else { return }
         central = CBCentralManager(delegate: self, queue: nil)
     }
 
     func connect() {
         errorMessage = nil
+        guard central != nil else {
+            connectWhenReady = true
+            makeCentral()
+            return
+        }
         guard central.state == .poweredOn else {
             connectionState = central.state == .unsupported ? .unsupported : .disconnected
             errorMessage = "Turn on Bluetooth, then connect the radar."
@@ -124,7 +139,7 @@ final class RadarBLEManager: NSObject, ObservableObject {
         if let peripheral {
             central.cancelPeripheralConnection(peripheral)
         }
-        if central.isScanning { central.stopScan() }
+        if central?.isScanning == true { central.stopScan() }
         peripheral = nil
         latest = nil
         lastValid = nil
@@ -152,13 +167,26 @@ extension RadarBLEManager: CBCentralManagerDelegate {
         Task { @MainActor in
             switch central.state {
             case .poweredOn:
-                self.resumeIfNeeded()
+                if self.connectWhenReady {
+                    self.connectWhenReady = false
+                    self.startScan()
+                } else {
+                    self.resumeIfNeeded()
+                }
             case .unauthorized:
+                self.connectWhenReady = false
                 self.connectionState = .disconnected
                 self.errorMessage = "Allow Bluetooth for fairLie in Settings."
             case .unsupported:
+                self.connectWhenReady = false
                 self.connectionState = .unsupported
+            case .unknown, .resetting:
+                break
             default:
+                if self.connectWhenReady {
+                    self.connectWhenReady = false
+                    self.errorMessage = "Turn on Bluetooth, then connect the radar."
+                }
                 self.connectionState = .disconnected
                 self.latest = nil
                 self.lastValid = nil
@@ -233,7 +261,7 @@ extension RadarBLEManager: CBPeripheralDelegate {
                 return
             }
             guard let service = peripheral.services?.first(where: { $0.uuid == Self.serviceUUID }) else {
-                self.errorMessage = "Radar service 0xAB20 missing. Reflash radar_stream.ino."
+                self.errorMessage = "This device wasn't recognized as a fairLie radar sensor. Power-cycle it and try again, or contact support."
                 return
             }
             peripheral.discoverCharacteristics([Self.radarUUID], for: service)
@@ -247,7 +275,7 @@ extension RadarBLEManager: CBPeripheralDelegate {
                 return
             }
             guard let characteristic = service.characteristics?.first(where: { $0.uuid == Self.radarUUID }) else {
-                self.errorMessage = "Radar notify 0xAB21 missing."
+                self.errorMessage = "The radar sensor isn't sending readings. Power-cycle it and try again, or contact support."
                 return
             }
             peripheral.setNotifyValue(true, for: characteristic)

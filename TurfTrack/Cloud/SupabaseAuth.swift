@@ -76,7 +76,7 @@ enum AuthAPIError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .server(_, let message): return message
-        case .missingSession: return "Supabase did not return a session."
+        case .missingSession: return "Sign-in didn't finish. Please try again."
         }
     }
 
@@ -150,7 +150,10 @@ struct SupabaseAuthAPI {
                 ?? json["message"] as? String
                 ?? json["error"] as? String
                 ?? "Sign-in failed (\(status))."
-            throw AuthAPIError.server(status, Self.friendly(message))
+            let text = status >= 500 || status == 0
+                ? "Sign-in is temporarily unavailable. Try again shortly."
+                : Self.friendly(message)
+            throw AuthAPIError.server(status, text)
         }
         return json
     }

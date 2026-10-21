@@ -45,25 +45,40 @@ final class GolfMatBLEManager: NSObject, ObservableObject {
         case .disconnected:
             return "Tap Connect to find GolfMat."
         case .scanning:
-            return "Looking for GolfMat / service 0xAB12…"
+            return "Looking for your GolfMat…"
         case .connecting:
             return "Linking to \(deviceName ?? "mat")…"
         case .connected:
             return armed
                 ? "Pads at 0 — waiting for a full strike."
-                : "Press Calibrate / Zero, then swing."
+                : "Zero the sensors, then swing."
         case .unsupported:
             return "Enable Bluetooth and try again."
         }
     }
 
+    /// Set when Connect was tapped before Bluetooth finished powering up.
+    private var connectWhenReady = false
+
     override init() {
         super.init()
+        // Creating the central is what shows the Bluetooth permission prompt, so wait for
+        // the first Connect tap. A device connected before already has permission.
+        if memory.autoReconnect { makeCentral() }
+    }
+
+    private func makeCentral() {
+        guard central == nil else { return }
         central = CBCentralManager(delegate: self, queue: nil)
     }
 
     func connect() {
         errorMessage = nil
+        guard central != nil else {
+            connectWhenReady = true
+            makeCentral()
+            return
+        }
         guard central.state == .poweredOn else {
             connectionState = central.state == .unsupported ? .unsupported : .disconnected
             errorMessage = "Turn on Bluetooth, then Connect."
@@ -128,7 +143,7 @@ final class GolfMatBLEManager: NSObject, ObservableObject {
     }
 
     private func stopScan() {
-        if central.isScanning {
+        if central?.isScanning == true {
             central.stopScan()
         }
     }
@@ -139,7 +154,7 @@ final class GolfMatBLEManager: NSObject, ObservableObject {
             guard Int(packet.impactQuality) >= Self.minimumImpactQuality else { return }
             lastPacket = packet
         } catch {
-            errorMessage = "Bad swing packet: \(error.localizedDescription)"
+            errorMessage = "Couldn't read that strike from the mat. Swing again."
         }
     }
 }
@@ -184,13 +199,26 @@ extension GolfMatBLEManager: CBCentralManagerDelegate {
         Task { @MainActor in
             switch central.state {
             case .poweredOn:
-                self.resumeIfNeeded()
+                if self.connectWhenReady {
+                    self.connectWhenReady = false
+                    self.startScan()
+                } else {
+                    self.resumeIfNeeded()
+                }
             case .unauthorized:
+                self.connectWhenReady = false
                 self.connectionState = .disconnected
                 self.errorMessage = "Allow Bluetooth for fairLie in Settings."
             case .unsupported:
+                self.connectWhenReady = false
                 self.connectionState = .unsupported
+            case .unknown, .resetting:
+                break
             default:
+                if self.connectWhenReady {
+                    self.connectWhenReady = false
+                    self.errorMessage = "Turn on Bluetooth, then Connect."
+                }
                 self.connectionState = .disconnected
                 self.armed = false
                 self.swingCharacteristic = nil
@@ -285,7 +313,7 @@ extension GolfMatBLEManager: CBPeripheralDelegate {
                 return
             }
             guard let service = peripheral.services?.first(where: { $0.uuid == Self.serviceUUID }) else {
-                self.errorMessage = "GolfMat service 0xAB12 missing. Reflash firmware."
+                self.errorMessage = "This mat wasn't recognized as a GolfMat. Power-cycle it and try again, or contact support."
                 return
             }
             peripheral.discoverCharacteristics([Self.swingUUID], for: service)
@@ -303,7 +331,7 @@ extension GolfMatBLEManager: CBPeripheralDelegate {
                 return
             }
             guard let characteristic = service.characteristics?.first(where: { $0.uuid == Self.swingUUID }) else {
-                self.errorMessage = "Swing notify 0xAB13 missing."
+                self.errorMessage = "This mat isn't sending strike data. Power-cycle it and try again, or contact support."
                 return
             }
             self.swingCharacteristic = characteristic

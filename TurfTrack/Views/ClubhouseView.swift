@@ -20,6 +20,10 @@ struct ClubhouseView: View {
     @State private var section: Section = .overview
     @State private var draft = ""
     @State private var posting = false
+    @State private var showRules = false
+    @State private var showTerms = false
+    /// Set once the golfer accepts the Clubhouse rules before their first post (App Review 1.2).
+    @AppStorage("fairlie.clubhouseRulesAccepted") private var rulesAccepted = false
 
     var body: some View {
         ScrollView {
@@ -50,6 +54,19 @@ struct ClubhouseView: View {
         }
         .background(Theme.cream)
         .refreshable { await store.refreshCloud() }
+        .alert("Clubhouse rules", isPresented: $showRules) {
+            Button("Agree and post") {
+                rulesAccepted = true
+                submitPost()
+            }
+            Button("Read Terms of Use") { showTerms = true }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Posts are public to other golfers. There is zero tolerance for abusive, hateful, sexual, or objectionable content, or for sharing personal contact details. Reported posts are reviewed, and accounts that break these rules can be removed.")
+        }
+        .sheet(isPresented: $showTerms) {
+            LegalDocumentView(document: .terms) { showTerms = false }
+        }
     }
 
     // MARK: - Header
@@ -322,11 +339,7 @@ struct ClubhouseView: View {
                         .padding(12)
                         .background(Theme.paper, in: RoundedRectangle(cornerRadius: 12))
                     Button(posting ? "…" : "Post") {
-                        posting = true
-                        Task {
-                            if await store.cloud.post(author: auth.user.name, text: draft) { draft = "" }
-                            posting = false
-                        }
+                        if rulesAccepted { submitPost() } else { showRules = true }
                     }
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(.white)
@@ -334,6 +347,11 @@ struct ClubhouseView: View {
                     .padding(.vertical, 12)
                     .background(Theme.green, in: Capsule())
                     .disabled(posting || draft.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                if let error = store.cloud.postError {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(Theme.danger)
                 }
                 Text("Posts are public to the Clubhouse. Keep it friendly — no personal info. Use ••• to report, hide, or block.")
                     .font(.caption2)
@@ -354,7 +372,7 @@ struct ClubhouseView: View {
                             } else {
                                 Button("Report post", role: .destructive) { report(post) }
                                 Button("Hide post") { store.cloud.hide(post) }
-                                Button("Block \(post.author)", role: .destructive) { store.cloud.block(author: post.author) }
+                                Button("Block \(post.author)", role: .destructive) { store.cloud.block(post) }
                             }
                         } label: {
                             Image(systemName: "ellipsis")
@@ -377,6 +395,14 @@ struct ClubhouseView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fairCard()
             }
+        }
+    }
+
+    private func submitPost() {
+        posting = true
+        Task {
+            if await store.cloud.post(author: auth.user.name, text: draft) { draft = "" }
+            posting = false
         }
     }
 

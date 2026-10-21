@@ -22,16 +22,22 @@ final class CloudSync: ObservableObject {
     @Published private(set) var stats = CloudProfileStats()
     @Published private(set) var hiddenPostIDs: Set<String>
     @Published private(set) var blockedAuthors: Set<String>
+    /// Blocked by account, so a blocked golfer who renames stays hidden.
+    @Published private(set) var blockedUserIDs: Set<String>
+    /// Why the last post was not published, shown under the composer.
+    @Published var postError: String?
 
     private let client: SupabaseREST?
     private static let hiddenKey = "fairlie.hiddenPosts"
     private static let blockedKey = "fairlie.blockedAuthors"
+    private static let blockedUsersKey = "fairlie.blockedUsers"
 
     init(config: SupabaseConfig? = SupabaseConfig.load()) {
         client = config.map { SupabaseREST(config: $0) }
         let defaults = UserDefaults.standard
         hiddenPostIDs = Set(defaults.stringArray(forKey: Self.hiddenKey) ?? [])
         blockedAuthors = Set(defaults.stringArray(forKey: Self.blockedKey) ?? [])
+        blockedUserIDs = Set(defaults.stringArray(forKey: Self.blockedUsersKey) ?? [])
     }
 
     var isConfigured: Bool { client != nil }
@@ -48,7 +54,11 @@ final class CloudSync: ObservableObject {
 
     /// Feed minus anything this user reported or whose author they blocked (App Review 1.2).
     var visibleFeed: [FeedPost] {
-        feed.filter { !hiddenPostIDs.contains($0.id) && !blockedAuthors.contains($0.author) }
+        feed.filter { post in
+            !hiddenPostIDs.contains(post.id)
+                && !blockedAuthors.contains(post.author)
+                && !(post.userId.map(blockedUserIDs.contains) ?? false)
+        }
     }
 
     func isMine(_ post: FeedPost) -> Bool {
@@ -64,15 +74,21 @@ final class CloudSync: ObservableObject {
         UserDefaults.standard.set(Array(hiddenPostIDs), forKey: Self.hiddenKey)
     }
 
-    func block(author: String) {
-        blockedAuthors.insert(author)
+    func block(_ post: FeedPost) {
+        blockedAuthors.insert(post.author)
         UserDefaults.standard.set(Array(blockedAuthors), forKey: Self.blockedKey)
+        if let userId = post.userId {
+            blockedUserIDs.insert(userId)
+            UserDefaults.standard.set(Array(blockedUserIDs), forKey: Self.blockedUsersKey)
+        }
     }
 
     func unblockAll() {
         blockedAuthors = []
+        blockedUserIDs = []
         hiddenPostIDs = []
         UserDefaults.standard.removeObject(forKey: Self.blockedKey)
+        UserDefaults.standard.removeObject(forKey: Self.blockedUsersKey)
         UserDefaults.standard.removeObject(forKey: Self.hiddenKey)
     }
 
@@ -142,7 +158,12 @@ final class CloudSync: ObservableObject {
 
     func post(author: String, text: String) async -> Bool {
         let body = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        postError = nil
         guard let client, !body.isEmpty else { return false }
+        if let problem = ContentFilter.problem(in: body) {
+            postError = problem
+            return false
+        }
         do {
             let rows: [FeedPost] = try await client.insert(
                 "clubhouse_feed",
@@ -151,7 +172,7 @@ final class CloudSync: ObservableObject {
             feed.insert(contentsOf: rows, at: 0)
             return true
         } catch {
-            status = .failed(error.localizedDescription)
+            postError = error.localizedDescription
             return false
         }
     }

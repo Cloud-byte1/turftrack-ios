@@ -130,11 +130,11 @@ struct LabView: View {
                     .fill(store.armed ? Theme.green : Color(white: 0.8))
                     .frame(width: 14, height: 14)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("MAT ESP · FSR / SWING").eyebrowStyle()
+                    Text("GOLFMAT · STRIKE SENSORS").eyebrowStyle()
                     Text(matTitle).font(.subheadline.weight(.bold))
                     Text(store.ble.isReconnecting && !store.ble.isConnected
                          ? store.ble.statusDetail
-                         : store.ble.isConnected ? "Bluetooth mat linked" : "Connect GolfMat over BLE")
+                         : store.ble.isConnected ? "GolfMat connected" : "Connect your GolfMat over Bluetooth")
                         .font(.caption)
                         .foregroundStyle(Theme.muted)
                 }
@@ -143,7 +143,7 @@ struct LabView: View {
                     if store.ble.isReconnecting && !store.ble.isConnected {
                         pill("Disconnect") { store.disconnectMat() }
                     } else if !store.ble.isConnected {
-                        pill("Mat BLE", enabled: store.ble.connectionState != .scanning) { store.connectMat() }
+                        pill("Connect", enabled: store.ble.connectionState != .scanning) { store.connectMat() }
                     } else {
                         pill(store.calibrating ? "Zeroing…" : store.isZeroed ? "Re-zero" : "Zero sensors",
                              emphasized: true,
@@ -170,7 +170,7 @@ struct LabView: View {
                     .fill(store.radar.isConnected ? Theme.green : Color(white: 0.8))
                     .frame(width: 14, height: 14)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("RADAR ESP · XM125").eyebrowStyle()
+                    Text("RADAR SENSOR · BALL SPEED").eyebrowStyle()
                     Text(store.radar.statusTitle)
                         .font(.subheadline.weight(.bold))
                     Text(store.radar.statusDetail)
@@ -182,7 +182,7 @@ struct LabView: View {
                     if store.radar.isConnected || store.radar.isReconnecting {
                         pill("Disconnect") { store.disconnectRadar() }
                     } else {
-                        pill("Radar BLE", enabled: store.radar.connectionState != .scanning) { store.connectRadar() }
+                        pill("Connect", enabled: store.radar.connectionState != .scanning) { store.connectRadar() }
                     }
                 }
             }
@@ -197,31 +197,27 @@ struct LabView: View {
         if store.ble.isReconnecting && !store.ble.isConnected { return "Reconnecting to GolfMat…" }
         if store.armed { return "Ready for one swing" }
         if !store.activeSessionStarted { return "Initialize a session" }
-        if !store.ble.isConnected { return "Connect mat ESP" }
+        if !store.ble.isConnected { return "Connect your GolfMat" }
         if !store.isZeroed { return "Mat linked · Needs zeroing" }
         return "Zeroed · Initialize swing"
     }
 
     private var radarPanel: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("XM125 RADAR · SEPARATE ESP").eyebrowStyle().foregroundStyle(store.swing.radarValid ? .white.opacity(0.55) : Theme.eyebrow)
-            Text(store.swing.radarValid ? "Radar motion locked" : "Radar values from mat packet / sim")
+            Text("RADAR SENSOR").eyebrowStyle().foregroundStyle(store.swing.radarValid ? .white.opacity(0.55) : Theme.eyebrow)
+            Text(store.swing.radarValid ? "Ball speed measured by radar" : "Ball speed is estimated")
                 .font(.headline)
             Text(
                 store.swing.radarValid
-                    ? String(format: "Live %.1f mph · dist %@ mm · intra %@",
-                             store.swing.ballSpeedMph,
-                             store.swing.radarDistanceMm.map(String.init) ?? "—",
-                             store.swing.radarIntraScore.map(String.init) ?? "—")
-                    : "Link the radar ESP over Bluetooth — its ball speed is merged into each mat strike."
+                    ? String(format: "Radar measured %.1f mph on this strike.", store.swing.ballSpeedMph)
+                    : "Connect your radar sensor above to measure ball speed on every mat strike."
             )
             .font(.caption)
             .foregroundStyle(store.swing.radarValid ? .white.opacity(0.72) : Theme.muted)
             if store.swing.radarValid {
                 HStack {
                     radarStat(String(format: "%.1f", store.swing.ballSpeedMph), "mph")
-                    radarStat(store.swing.radarDistanceMm.map(String.init) ?? "—", "mm")
-                    radarStat(store.swing.radarIntraScore.map(String.init) ?? "—", "intra")
+                    radarStat(store.swing.radarDistanceMm.map { String(format: "%.0f", Double($0) / 25.4) } ?? "—", "in away")
                 }
             }
         }
@@ -251,7 +247,7 @@ struct LabView: View {
                     Text("SWING SIMULATOR").eyebrowStyle()
                     Text("Below-average mid-handicap swings").font(.headline)
                     Text(store.trackSimLive
-                         ? "Live track on — Randomize / Simulate picks a new missy swing each time."
+                         ? "Live track on — Randomize / Simulate generates a new practice swing each time."
                          : "Randomize for a fresh below-average strike, or nudge the sliders.")
                     .font(.caption)
                     .foregroundStyle(Theme.muted)

@@ -34,9 +34,13 @@ The GolfMat and radar are not required for review because the built-in simulator
 
 The Clubhouse feed supports Report, Hide, Block author, and deletion of a golfer's own posts. These controls and the public support email address should be mentioned when answering the user-generated-content questions.
 
+Objectionable content is filtered twice: the app screens posts, display names, bios, and cities (`ContentFilter` in `TurfTrack/Cloud/CloudModels.swift`), and the server rejects anything that slips through (`docs/supabase/content_filter.sql`, which must be run once in the Supabase SQL editor). The filter also blocks links, email addresses, and phone numbers. Users agree to the Terms of Use, with zero tolerance for abusive content, on the sign-in screen, and must accept the Clubhouse rules before their first post.
+
+**Open blocker:** `support@fairlie.app` does not receive mail because `fairlie.app` is not registered. Report post, Contact support, and the policy pages all use it. Replace it with a working inbox before submitting (`AppConfig.supportEmail`, `docs/support.md`, `docs/legal/*.md`).
+
 ## Bluetooth and measurement wording
 
-Bluetooth is used only for the GolfMat ESP32 pressure/FSR mat and the optional second ESP32 with an Acconeer XM125 radar. The app automatically reconnects to the last device after a dropped connection.
+Bluetooth is used only for the GolfMat ESP32 pressure/FSR mat and the optional second ESP32 with an Acconeer XM125 radar. The app automatically reconnects to the last device after a dropped connection. The Bluetooth permission prompt appears only when the golfer first taps Connect, never at launch. In-app wording says "GolfMat" and "radar sensor"; hardware part names stay out of the UI.
 
 Store metadata and screenshots must describe carry distance, club speed, and attack angle as **estimates** derived from mat sensors. Ball speed is **measured** only when a radar reading is merged; otherwise it is estimated. Do not advertise smash factor, putting tracking, followers, or video clips.
 
@@ -118,9 +122,10 @@ Password: <enter working demo password>
 2. Verify guest mode on a fresh install and erase guest data in Settings.
 3. Verify email/password and Sign in with Apple on a physical device.
 4. Verify Settings account deletion with a disposable Supabase account.
-5. Verify Report, Hide, Block, and own-post deletion in the Clubhouse.
-6. Test GolfMat connection, optional radar connection, and automatic reconnection.
-7. Confirm simulated sessions remain local and do not appear in rankings.
-8. Complete the privacy and age-rating questionnaires.
-9. Add current screenshots, review notes, and a working Clubhouse demo account.
-10. Upload to TestFlight and test the exact build before submitting it for review.
+5. Verify Report, Hide, Block, and own-post deletion in the Clubhouse. Confirm the Clubhouse rules prompt appears before the first post and that a post with blocked language is refused.
+6. Run `docs/supabase/content_filter.sql` in Supabase and replace `support@fairlie.app` with a working inbox.
+7. Test GolfMat connection, optional radar connection, and automatic reconnection.
+8. Confirm simulated sessions remain local and do not appear in rankings.
+9. Complete the privacy and age-rating questionnaires.
+10. Add current screenshots, review notes, and a working Clubhouse demo account.
+11. Upload to TestFlight and test the exact build before submitting it for review.

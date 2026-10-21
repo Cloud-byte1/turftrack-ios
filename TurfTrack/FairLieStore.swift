@@ -189,7 +189,7 @@ final class FairLieStore: ObservableObject {
     }
 
     func connectRadar() {
-        notice = "Opening Bluetooth for the radar ESP…"
+        notice = "Looking for your radar sensor…"
         radar.connect()
     }
 

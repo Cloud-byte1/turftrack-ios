@@ -151,6 +151,12 @@ struct LoginView: View {
                 .foregroundStyle(Theme.muted)
                 .multilineTextAlignment(.center)
 
+            // App Review 1.2: users accept the terms, including zero tolerance for abuse, before posting.
+            Text("By signing in or creating an account you agree to the Terms of Use, including zero tolerance for abusive or objectionable content in the Clubhouse.")
+                .font(.caption2)
+                .foregroundStyle(Theme.muted)
+                .multilineTextAlignment(.center)
+
             HStack(spacing: 6) {
                 Button("Privacy Policy") { legalDocument = .privacy }
                 Text("·").foregroundStyle(Theme.muted)

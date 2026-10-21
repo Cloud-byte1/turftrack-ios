@@ -140,6 +140,7 @@ struct SettingsView: View {
     @State private var showDeleteAccount = false
     @State private var confirmEraseGuest = false
     @State private var exportedData = false
+    @State private var profileError: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -196,12 +197,20 @@ struct SettingsView: View {
             .fairCard()
 
             Button("Save profile") {
+                // Name and bio are visible to other golfers, so they get the same screening as posts.
+                if let problem = ContentFilter.problem(in: [name, city, bio].joined(separator: "\n")) {
+                    profileError = problem
+                    return
+                }
                 auth.updateProfile(name: name, city: city, bio: bio, handicap: handicap)
                 onClose()
             }
             .font(.subheadline.weight(.bold)).foregroundStyle(.white)
             .frame(maxWidth: .infinity).padding(.vertical, 14)
             .background(Theme.green, in: Capsule())
+            if let profileError {
+                Text(profileError).font(.caption).foregroundStyle(Theme.danger)
+            }
         }
     }
 
