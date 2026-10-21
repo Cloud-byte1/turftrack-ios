@@ -17,7 +17,7 @@ final class AuthTokenStore: @unchecked Sendable {
 
     private let lock = NSLock()
     private var tokens: AuthTokens?
-    private let service = "com.fairlie.turftrack.auth"
+    private let service = "com.fairlie.app.auth"
     private let account = "supabase.session"
 
     init() {

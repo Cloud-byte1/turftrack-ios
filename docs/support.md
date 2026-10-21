@@ -6,7 +6,7 @@ permalink: /support/
 
 # fairLie Support
 
-Email [support@fairlie.app](mailto:support@fairlie.app) for help.
+Email [fairliemat@gmail.com](mailto:fairliemat@gmail.com) for help.
 
 ## Frequently asked questions
 

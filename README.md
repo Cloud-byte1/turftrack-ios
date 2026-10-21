@@ -1,6 +1,6 @@
 # fairLie (iOS)
 
-fairLie is a native SwiftUI iPhone app for iOS 16 and later. Its bundle ID is `com.fairlie.turftrack`.
+fairLie is a native SwiftUI iPhone app for iOS 16 and later. Its bundle ID is `com.fairlie.app`.
 
 ## App
 
@@ -37,7 +37,7 @@ Supabase SQL files are under [`docs/supabase`](docs/supabase). Never put a Supab
 
 1. Open `TurfTrack.xcodeproj` on a Mac with Xcode.
 2. Choose your Apple Developer Team in Xcode under **Signing & Capabilities**. No Team ID is committed to the repository.
-3. Enable Sign in with Apple for the `com.fairlie.turftrack` App ID and target.
+3. Enable Sign in with Apple for the `com.fairlie.app` App ID and target.
 4. Run on an iPhone with iOS 16 or later.
 
 Hardware is optional for exploring the app because guest mode and the built-in simulator are available from the login and Practice flows.

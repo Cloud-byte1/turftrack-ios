@@ -50,7 +50,7 @@ Guest data is kept on the iPhone until you erase guest data in Settings or delet
 
 ## Access and export
 
-Signed-in golfers can use the data export option in Settings to export their data. Guests can review their locally stored profile and session history in the app. For help with an access or export request, email [support@fairlie.app](mailto:support@fairlie.app).
+Signed-in golfers can use the data export option in Settings to export their data. Guests can review their locally stored profile and session history in the app. For help with an access or export request, email [fairliemat@gmail.com](mailto:fairliemat@gmail.com).
 
 ## Service providers
 
@@ -66,4 +66,4 @@ We may update this policy when our practices change. We will update the effectiv
 
 ## Contact
 
-For privacy questions or requests, email [support@fairlie.app](mailto:support@fairlie.app).
+For privacy questions or requests, email [fairliemat@gmail.com](mailto:fairliemat@gmail.com).

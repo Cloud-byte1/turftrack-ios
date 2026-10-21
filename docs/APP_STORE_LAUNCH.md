@@ -1,6 +1,6 @@
 # fairLie App Store launch checklist
 
-This checklist covers the current iPhone app, bundle ID `com.fairlie.turftrack`, with a minimum deployment target of iOS 16.
+This checklist covers the current iPhone app, bundle ID `com.fairlie.app`, with a minimum deployment target of iOS 16.
 
 ## Public pages
 
@@ -61,7 +61,7 @@ Answer **No** when asked whether fairLie or its third-party partners use data fo
 ## Signing and capabilities
 
 - Select the Apple Developer Team in Xcode under **Signing & Capabilities**. No Team ID is committed to the repository.
-- Confirm the bundle ID is `com.fairlie.turftrack`.
+- Confirm the bundle ID is `com.fairlie.app`.
 - Enable Sign in with Apple for the App ID and target.
 - Deploy the `apple-revoke` Edge Function ([`docs/supabase/functions/apple-revoke`](supabase/functions/apple-revoke/index.ts)) and set its `APPLE_TEAM_ID`, `APPLE_KEY_ID`, and `APPLE_PRIVATE_KEY` secrets. Deleting a Sign in with Apple account revokes its Apple tokens first and is refused if revocation fails.
 - Archive with a current App Store-supported Xcode and SDK.
@@ -74,7 +74,7 @@ Answer **No** when asked whether fairLie or its third-party partners use data fo
 - Marketing URL: `https://cloud-byte1.github.io/turftrack-ios/`
 - Privacy Policy URL: `https://cloud-byte1.github.io/turftrack-ios/privacy/`
 - Terms URL where requested: `https://cloud-byte1.github.io/turftrack-ios/terms/`
-- Support email: `support@fairlie.app`
+- Support email: `fairliemat@gmail.com`
 - State that the app requires iOS 16 or later.
 - Use screenshots of current functionality and label simulated results clearly.
 - Answer the age-rating questionnaire to disclose user-generated Clubhouse content.
